@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+:root {
+  --bg-primary: #070707;
+  --bg-secondary: #111111;
+  --bg-charcoal: #191919;
+  --fire-orange: #FF6A00;
+  --fire-amber: #FF9D32;
+  --fire-red: #8F1D12;
+  --text-primary: #F5F1EA;
+  --text-muted: #A7A7A7;
+}
+
+@theme {
+  --color-bg-primary: #070707;
+  --color-bg-secondary: #111111;
+  --color-bg-charcoal: #191919;
+  --color-fire-orange: #FF6A00;
+  --color-fire-amber: #FF9D32;
+  --color-fire-red: #8F1D12;
+  --color-text-primary: #F5F1EA;
+  --color-text-muted: #A7A7A7;
+  --font-bebas: var(--font-bebas), 'Bebas Neue', sans-serif;
+  --font-serif: var(--font-bebas), 'Bebas Neue', 'Cinzel', sans-serif;
+  --font-sans: 'Outfit', 'Inter', sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+  background-color: #070707;
+  color: #F5F1EA;
+  font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+  color-scheme: dark;
+}
+
+body {
+  background-color: #070707;
+  color: #F5F1EA;
+  overflow-x: hidden;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #070707;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #191919;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 106, 0, 0.2);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #FF6A00;
+}
+
+/* Film Grain Overlay */
+.film-grain {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
+}
+
+/* Fire Glow Effect */
+.fire-glow {
+  box-shadow: 0 0 35px -5px rgba(255, 106, 0, 0.25);
+}
+
+.fire-glow-lg {
+  box-shadow: 0 0 60px -10px rgba(255, 106, 0, 0.35);
+}
+
+.fire-text-glow {
+  text-shadow: 0 0 20px rgba(255, 106, 0, 0.5), 0 0 40px rgba(255, 157, 50, 0.2);
+}
+
+/* Ember floating keyframes */
+@keyframes floatUp {
+  0% {
+    transform: translateY(0) translateX(0) scale(1);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.8;
+  }
+  80% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(-100vh) translateX(30px) scale(0.4);
+    opacity: 0;
+  }
+}
+
+.animate-ember {
+  animation: floatUp 8s ease-in-out infinite;
+}
+
+/* Shimmer animation for luxury borders */
+@keyframes borderShimmer {
+  0%, 100% {
+    border-color: rgba(255, 106, 0, 0.15);
+  }
+  50% {
+    border-color: rgba(255, 157, 50, 0.4);
+  }
+}
+
+.shimmer-border {
+  animation: borderShimmer 4s infinite ease-in-out;
+}
