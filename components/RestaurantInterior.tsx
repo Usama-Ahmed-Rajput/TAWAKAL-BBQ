@@ -46,7 +46,7 @@ export const RestaurantInterior: React.FC = () => {
     <section
       ref={containerRef}
       id="experience"
-      className="relative py-28 px-4 sm:px-6 lg:px-8 bg-[#070707] border-b border-[#191919] overflow-hidden"
+      className="relative py-28 px-4 sm:px-6 lg:px-8 bg-[#11100E] border-b border-[#F4EBDD]/10 overflow-hidden"
     >
       <div className="max-w-7xl mx-auto">
         <SectionHeading
@@ -61,7 +61,7 @@ export const RestaurantInterior: React.FC = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
-          className="mt-14 relative w-full h-[400px] sm:h-[500px] bg-[#191919] border border-[#FF6A00]/30 shadow-[0_25px_60px_rgba(0,0,0,0.9)] overflow-hidden"
+          className="mt-14 relative w-full aspect-video sm:aspect-auto sm:h-[450px] md:h-[500px] bg-[#1A1815] border border-[#C83B22]/30 rounded-xl shadow-[0_25px_60px_rgba(0,0,0,0.9)] overflow-hidden"
         >
           <video
             ref={videoRef}
@@ -71,19 +71,18 @@ export const RestaurantInterior: React.FC = () => {
             autoPlay
             playsInline
             preload="auto"
-            className="w-full h-full object-cover opacity-90"
+            className="w-full h-full object-cover object-center opacity-90"
           />
 
           {/* Vignette & Gradient Overlays */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#070707] via-transparent to-[#070707]/60 pointer-events-none" />
-          <div className="absolute inset-0 bg-radial-vignette opacity-50 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#11100E] via-transparent to-[#11100E]/70 pointer-events-none" />
 
           {/* Overlay Tagline */}
           <div className="absolute inset-0 z-10 flex flex-col justify-center items-center text-center p-6 pointer-events-none">
-            <span className="text-xs uppercase tracking-[0.3em] font-bold text-[#FF6A00] mb-2">
+            <span className="font-sans text-xs uppercase tracking-[0.25em] font-bold text-[#C69A45] mb-2">
               LUXURY PAKISTANI AMBIANCE
             </span>
-            <h3 className="font-serif text-3xl sm:text-5xl font-bold tracking-wider text-[#F5F1EA] max-w-2xl leading-tight fire-text-glow">
+            <h3 className="font-bebas text-3xl sm:text-5xl md:text-6xl font-normal tracking-widest text-[#F4EBDD] max-w-2xl leading-none fire-text-glow">
               AN UNFORGETTABLE FEAST FOR THE SENSES
             </h3>
           </div>
@@ -100,16 +99,16 @@ export const RestaurantInterior: React.FC = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: 0.15 * idx }}
-                className="group p-6 bg-[#111111] border border-[#FF6A00]/20 hover:border-[#FF6A00]/70 transition-all duration-300 shadow-[0_10px_20px_rgba(0,0,0,0.5)] flex flex-col justify-between"
+                className="group p-6 bg-[#1A1815] border border-[#F4EBDD]/10 hover:border-[#C83B22]/60 rounded-xl transition-all duration-300 shadow-[0_10px_20px_rgba(0,0,0,0.5)] flex flex-col justify-between"
               >
                 <div>
-                  <div className="w-12 h-12 rounded-none bg-[#191919] border border-[#FF6A00]/30 flex items-center justify-center mb-5 group-hover:border-[#FF6A00] transition-colors">
-                    <Icon className="w-6 h-6 text-[#FF6A00] group-hover:scale-110 transition-transform" />
+                  <div className="w-12 h-12 rounded-lg bg-[#11100E] border border-[#C69A45]/30 flex items-center justify-center mb-5 group-hover:border-[#C83B22] transition-colors">
+                    <Icon className="w-6 h-6 text-[#C69A45] group-hover:text-[#C83B22] group-hover:scale-110 transition-transform" />
                   </div>
-                  <h4 className="font-serif text-lg font-bold tracking-wider text-[#F5F1EA] group-hover:text-[#FF9D32] transition-colors mb-2">
+                  <h4 className="font-food text-lg font-normal text-[#F4EBDD] group-hover:text-[#D96A2B] transition-colors mb-2">
                     {feat.title}
                   </h4>
-                  <p className="text-xs text-[#A7A7A7] font-light leading-relaxed">
+                  <p className="font-sans text-xs text-[#B8B0A5] font-normal leading-relaxed">
                     {feat.desc}
                   </p>
                 </div>

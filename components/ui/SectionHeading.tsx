@@ -31,10 +31,10 @@ export const SectionHeading: React.FC<SectionHeadingProps> = ({
           initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-50px' }}
-          transition={{ duration: 0.6 }}
-          className="inline-flex items-center gap-2 mb-3 px-3.5 py-1 bg-[#191919] border border-[#FF6A00]/30 text-[#FF9D32] text-xs font-semibold uppercase tracking-[0.25em]"
+          transition={{ duration: 0.5 }}
+          className="inline-flex items-center gap-2 mb-3 px-3 py-1 bg-[var(--color-surface)] border border-[var(--color-border)] text-eyebrow rounded-md"
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-[#FF6A00] animate-pulse" />
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)] animate-pulse" />
           {eyebrow}
         </motion.div>
       )}
@@ -43,8 +43,8 @@ export const SectionHeading: React.FC<SectionHeadingProps> = ({
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-50px' }}
-        transition={{ duration: 0.7, delay: 0.1 }}
-        className="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-wider text-[#F5F1EA] uppercase leading-tight"
+        transition={{ duration: 0.6, delay: 0.1 }}
+        className="text-section-title text-[var(--color-text)] leading-[0.95]"
       >
         {title}
       </motion.h2>
@@ -54,8 +54,8 @@ export const SectionHeading: React.FC<SectionHeadingProps> = ({
           initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-50px' }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="mt-4 text-base sm:text-lg text-[#A7A7A7] max-w-2xl font-light leading-relaxed"
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="mt-3 text-body text-[var(--color-text-muted)] max-w-2xl"
         >
           {subtitle}
         </motion.p>
@@ -65,11 +65,9 @@ export const SectionHeading: React.FC<SectionHeadingProps> = ({
         initial={{ scaleX: 0 }}
         whileInView={{ scaleX: 1 }}
         viewport={{ once: true }}
-        transition={{ duration: 0.8, delay: 0.3 }}
-        className={`h-0.5 w-24 mt-6 bg-gradient-to-r ${
-          isCenter
-            ? 'from-transparent via-[#FF6A00] to-transparent origin-center'
-            : 'from-[#FF6A00] via-[#FF9D32] to-transparent origin-left'
+        transition={{ duration: 0.7, delay: 0.3 }}
+        className={`decorative-line mt-5 ${
+          isCenter ? 'origin-center' : 'origin-left'
         }`}
       />
     </div>

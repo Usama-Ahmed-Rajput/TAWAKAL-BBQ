@@ -1,66 +1,66 @@
 'use client';
 
 import React from 'react';
-import { Flame, Share2, MapPin, Phone, Clock, Globe, MessageCircle } from 'lucide-react';
+import { Flame, MapPin, Phone, Clock } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="bg-[#070707] text-[#A7A7A7] pt-20 pb-10 border-t border-[#191919] relative">
+    <footer className="bg-[#11100E] text-[#B8B0A5] pt-20 pb-10 border-t border-[#F4EBDD]/10 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-16 border-b border-[#191919]">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-16 border-b border-[#F4EBDD]/10">
           {/* Brand Column */}
           <div className="lg:col-span-2 space-y-4">
             <a href="#hero" className="inline-flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-full bg-[#191919] border border-[#FF6A00]/40 flex items-center justify-center">
-                <Flame className="w-5 h-5 text-[#FF6A00]" />
+              <div className="w-10 h-10 rounded-full bg-[#1A1815] border border-[#C83B22]/40 flex items-center justify-center">
+                <Flame className="w-5 h-5 text-[#C83B22]" />
               </div>
-              <span className="font-serif text-2xl font-bold tracking-widest text-[#F5F1EA]">
-                TAWAKAL <span className="text-[#FF6A00]">BBQ</span>
+              <span className="font-bebas text-3xl font-normal tracking-widest text-[#F4EBDD]">
+                TAWAKAL <span className="text-[#C83B22]">BBQ</span>
               </span>
             </a>
 
-            <p className="text-sm font-light leading-relaxed max-w-sm">
+            <p className="font-sans text-xs sm:text-sm font-normal leading-relaxed max-w-sm text-[#B8B0A5]">
               Authentic Pakistani BBQ grilled over natural live charcoal. Crafted with heritage marinades, premium cuts, and uncompromised passion for flavor.
             </p>
 
-            <div className="pt-2 text-xs uppercase tracking-[0.2em] font-semibold text-[#FF9D32]">
+            <div className="pt-2 font-sans text-xs uppercase tracking-[0.2em] font-bold text-[#C69A45]">
               WHERE FIRE MEETS FLAVOR
             </div>
           </div>
 
           {/* Navigation Links */}
           <div className="space-y-4">
-            <h4 className="font-serif text-sm font-bold uppercase tracking-wider text-[#F5F1EA]">
+            <h4 className="font-sans text-xs font-bold uppercase tracking-wider text-[#F4EBDD]">
               NAVIGATION
             </h4>
-            <ul className="space-y-2.5 text-xs tracking-wider">
+            <ul className="space-y-2.5 font-sans text-xs tracking-wider">
               <li>
-                <a href="#hero" className="hover:text-[#FF6A00] transition-colors">
+                <a href="#hero" className="hover:text-[#C83B22] transition-colors">
                   HOME
                 </a>
               </li>
               <li>
-                <a href="#about" className="hover:text-[#FF6A00] transition-colors">
+                <a href="#about" className="hover:text-[#C83B22] transition-colors">
                   ABOUT HERITAGE
                 </a>
               </li>
               <li>
-                <a href="#from-fire" className="hover:text-[#FF6A00] transition-colors">
+                <a href="#from-fire" className="hover:text-[#C83B22] transition-colors">
                   FIRE TO FLAVOR
                 </a>
               </li>
               <li>
-                <a href="#signatures" className="hover:text-[#FF6A00] transition-colors">
+                <a href="#signatures" className="hover:text-[#C83B22] transition-colors">
                   SIGNATURE DISHES
                 </a>
               </li>
               <li>
-                <a href="#menu" className="hover:text-[#FF6A00] transition-colors">
+                <a href="#menu" className="hover:text-[#C83B22] transition-colors">
                   FULL MENU
                 </a>
               </li>
               <li>
-                <a href="#location" className="hover:text-[#FF6A00] transition-colors">
+                <a href="#location" className="hover:text-[#C83B22] transition-colors">
                   LOCATION & HOURS
                 </a>
               </li>
@@ -69,40 +69,40 @@ export const Footer: React.FC = () => {
 
           {/* Contact Details */}
           <div className="space-y-4">
-            <h4 className="font-serif text-sm font-bold uppercase tracking-wider text-[#F5F1EA]">
+            <h4 className="font-sans text-xs font-bold uppercase tracking-wider text-[#F4EBDD]">
               CONTACT & HOURS
             </h4>
-            <div className="space-y-3 text-xs">
+            <div className="space-y-3 font-sans text-xs text-[#B8B0A5]">
               <div className="flex items-start gap-2">
-                <MapPin className="w-4 h-4 text-[#FF6A00] shrink-0 mt-0.5" />
-                <span>[RESTAURANT ADDRESS]</span>
+                <MapPin className="w-4 h-4 text-[#C83B22] shrink-0 mt-0.5" />
+                <span>Main Boulevard, Food Street, Karachi</span>
               </div>
               <div className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-[#FF6A00] shrink-0" />
-                <span>[PHONE NUMBER]</span>
+                <Phone className="w-4 h-4 text-[#C83B22] shrink-0" />
+                <a href="tel:+923001234567" className="hover:text-[#C83B22] transition-colors">+92 300 1234567</a>
               </div>
               <div className="flex items-start gap-2">
-                <Clock className="w-4 h-4 text-[#FF6A00] shrink-0 mt-0.5" />
-                <span>[OPENING HOURS]</span>
+                <Clock className="w-4 h-4 text-[#C83B22] shrink-0 mt-0.5" />
+                <span>5:00 PM – 1:00 AM (Mon - Sun)</span>
               </div>
             </div>
           </div>
 
           {/* Social Links */}
           <div className="space-y-4">
-            <h4 className="font-serif text-sm font-bold uppercase tracking-wider text-[#F5F1EA]">
+            <h4 className="font-sans text-xs font-bold uppercase tracking-wider text-[#F4EBDD]">
               FOLLOW THE FLAME
             </h4>
-            <p className="text-xs font-light">
+            <p className="font-sans text-xs font-normal text-[#B8B0A5]">
               Connect with us for behind-the-scenes grill action & special seasonal menus.
             </p>
             <div className="flex items-center gap-3 pt-2">
               <a
-                href="[INSTAGRAM URL]"
+                href="https://instagram.com"
                 target="_blank"
                 rel="noreferrer"
                 aria-label="Instagram"
-                className="w-10 h-10 bg-[#191919] border border-[#FF6A00]/30 hover:border-[#FF6A00] flex items-center justify-center text-[#F5F1EA] hover:text-[#FF6A00] transition-colors"
+                className="w-10 h-10 rounded-lg bg-[#1A1815] border border-[#F4EBDD]/15 hover:border-[#C83B22] flex items-center justify-center text-[#F4EBDD] hover:text-[#C83B22] transition-colors"
               >
                 {/* Real Instagram SVG */}
                 <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
@@ -110,11 +110,11 @@ export const Footer: React.FC = () => {
                 </svg>
               </a>
               <a
-                href="[FACEBOOK URL]"
+                href="https://facebook.com"
                 target="_blank"
                 rel="noreferrer"
                 aria-label="Facebook"
-                className="w-10 h-10 bg-[#191919] border border-[#FF6A00]/30 hover:border-[#FF6A00] flex items-center justify-center text-[#F5F1EA] hover:text-[#FF6A00] transition-colors"
+                className="w-10 h-10 rounded-lg bg-[#1A1815] border border-[#F4EBDD]/15 hover:border-[#C83B22] flex items-center justify-center text-[#F4EBDD] hover:text-[#C83B22] transition-colors"
               >
                 {/* Real Facebook SVG */}
                 <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
@@ -122,11 +122,11 @@ export const Footer: React.FC = () => {
                 </svg>
               </a>
               <a
-                href="[TIKTOK URL]"
+                href="https://tiktok.com"
                 target="_blank"
                 rel="noreferrer"
                 aria-label="TikTok"
-                className="w-10 h-10 bg-[#191919] border border-[#FF6A00]/30 hover:border-[#FF6A00] flex items-center justify-center text-[#F5F1EA] hover:text-[#FF6A00] transition-colors"
+                className="w-10 h-10 rounded-lg bg-[#1A1815] border border-[#F4EBDD]/15 hover:border-[#C83B22] flex items-center justify-center text-[#F4EBDD] hover:text-[#C83B22] transition-colors"
               >
                 {/* Real TikTok SVG */}
                 <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
@@ -134,16 +134,13 @@ export const Footer: React.FC = () => {
                 </svg>
               </a>
             </div>
-            <span className="text-[10px] uppercase tracking-widest text-[#A7A7A7]/50 block">
-              Social Handles: [INSTAGRAM URL]
-            </span>
           </div>
         </div>
 
         {/* Copyright & Disclaimer */}
-        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-[#A7A7A7]/60 gap-4">
+        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between font-sans text-xs text-[#B8B0A5]/70 gap-4">
           <p>© {new Date().getFullYear()} TAWAKAL BBQ. All rights reserved.</p>
-          <p className="tracking-widest uppercase">
+          <p className="tracking-wider uppercase">
             Authentic Fire-Grilled Pakistani BBQ Digital Experience
           </p>
         </div>

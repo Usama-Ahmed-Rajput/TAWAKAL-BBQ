@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Flame, ShieldCheck, Sparkles, Award } from 'lucide-react';
+import { Flame, ShieldCheck, Award } from 'lucide-react';
 import { SectionHeading } from './ui/SectionHeading';
 
 export const BrandIntro: React.FC = () => {
@@ -15,7 +15,7 @@ export const BrandIntro: React.FC = () => {
     {
       icon: ShieldCheck,
       title: 'Hand-Selected Cuts',
-      desc: 'Daily freshly sourced meat marinates 24-hours in stone-ground Punjabi spices.',
+      desc: 'Daily freshly sourced meat marinates 24-hours in stone-ground Pakistani spices.',
     },
     {
       icon: Award,
@@ -27,10 +27,10 @@ export const BrandIntro: React.FC = () => {
   return (
     <section
       id="about"
-      className="relative py-28 px-4 sm:px-6 lg:px-8 bg-[#111111] border-y border-[#191919] overflow-hidden"
+      className="relative py-28 px-4 sm:px-6 lg:px-8 bg-[#1A1815] border-y border-[#F4EBDD]/10 overflow-hidden"
     >
-      {/* Background Subtle Ember Radial Glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-radial from-[#FF6A00]/10 via-[#8F1D12]/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+      {/* Background Subtle Radial Glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-radial from-[#C83B22]/10 via-[#D96A2B]/5 to-transparent rounded-full blur-3xl pointer-events-none" />
 
       <div className="max-w-6xl mx-auto relative z-10">
         <SectionHeading
@@ -39,14 +39,19 @@ export const BrandIntro: React.FC = () => {
           subtitle="Authentic flavor begins with real fire."
         />
 
+        {/* Short Statement in DM Serif Display & Inter */}
         <motion.div
-          initial={{ opacity: 0, y: 25 }}
+          initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-50px' }}
-          transition={{ duration: 0.8, delay: 0.3 }}
-          className="mt-8 text-center max-w-3xl mx-auto text-base sm:text-lg text-[#F5F1EA]/80 font-light leading-relaxed tracking-wide"
+          transition={{ duration: 0.7, delay: 0.2 }}
+          className="mt-8 text-center max-w-3xl mx-auto space-y-4"
         >
-          <p>
+          <p className="font-food text-2xl sm:text-3xl text-[#F4EBDD] font-normal leading-snug">
+            “TRADITION + FIRE + FLAVOR”
+          </p>
+
+          <p className="font-sans text-sm sm:text-base text-[#B8B0A5] font-normal leading-relaxed">
             Tawakal BBQ brings authentic fire-grilled flavors into a modern dining experience, prepared with carefully selected ingredients, rich marinades and the unmistakable character of live fire.
           </p>
         </motion.div>
@@ -61,21 +66,21 @@ export const BrandIntro: React.FC = () => {
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-50px' }}
-                transition={{ duration: 0.6, delay: 0.2 * idx }}
-                className="group relative p-8 bg-[#191919] border border-[#FF6A00]/15 hover:border-[#FF6A00]/60 transition-all duration-500 rounded-none shadow-[0_10px_30px_rgba(0,0,0,0.5)] hover:-translate-y-2"
+                transition={{ duration: 0.6, delay: 0.15 * idx }}
+                className="group relative p-8 bg-[#11100E] border border-[#F4EBDD]/10 hover:border-[#C83B22]/60 transition-all duration-300 rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.6)] hover:-translate-y-1.5"
               >
                 {/* Glow border line on top */}
-                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#FF6A00]/0 to-transparent group-hover:via-[#FF6A00] transition-all duration-500" />
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#C83B22]/0 to-transparent group-hover:via-[#C83B22] transition-all duration-500 rounded-t-xl" />
 
-                <div className="w-14 h-14 rounded-none bg-[#070707] border border-[#FF6A00]/30 flex items-center justify-center mb-6 group-hover:border-[#FF6A00] transition-colors">
-                  <Icon className="w-7 h-7 text-[#FF6A00] group-hover:scale-110 transition-transform" />
+                <div className="w-14 h-14 rounded-lg bg-[#1A1815] border border-[#C69A45]/30 flex items-center justify-center mb-6 group-hover:border-[#C83B22] transition-colors">
+                  <Icon className="w-7 h-7 text-[#C69A45] group-hover:text-[#C83B22] group-hover:scale-110 transition-all" />
                 </div>
 
-                <h3 className="font-serif text-xl font-bold tracking-wider text-[#F5F1EA] mb-3 group-hover:text-[#FF9D32] transition-colors">
+                <h3 className="font-food text-xl font-normal text-[#F4EBDD] mb-3 group-hover:text-[#D96A2B] transition-colors">
                   {item.title}
                 </h3>
 
-                <p className="text-sm text-[#A7A7A7] font-light leading-relaxed">
+                <p className="font-sans text-xs sm:text-sm text-[#B8B0A5] font-normal leading-relaxed">
                   {item.desc}
                 </p>
               </motion.div>

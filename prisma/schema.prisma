@@ -1,0 +1,421 @@
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String     @id @default(uuid())
+  name         String
+  email        String     @unique
+  passwordHash String
+  roleId       String
+  role         Role       @relation(fields: [roleId], references: [id])
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  auditLogs    AuditLog[]
+}
+
+model Role {
+  id          String           @id @default(uuid())
+  name        String           @unique
+  description String?
+  users       User[]
+  permissions RolePermission[]
+}
+
+model Permission {
+  id          String           @id @default(uuid())
+  key         String           @unique
+  name        String
+  description String?
+  roles       RolePermission[]
+}
+
+model RolePermission {
+  roleId        String
+  permissionKey String
+  role          Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission    Permission @relation(fields: [permissionKey], references: [key], onDelete: Cascade)
+
+  @@id([roleId, permissionKey])
+}
+
+model MenuCategory {
+  id          String     @id @default(uuid())
+  name        String
+  slug        String     @unique
+  description String?
+  image       String?
+  sortOrder   Int        @default(0)
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  items       MenuItem[]
+}
+
+model MenuItem {
+  id               String            @id @default(uuid())
+  name             String
+  slug             String            @unique
+  urduName         String?
+  description      String?
+  shortDescription String?
+  categoryId       String
+  category         MenuCategory      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  price            Float
+  compareAtPrice   Float?
+  image            String
+  gallery          String?           // JSON array string
+  isFeatured       Boolean           @default(false)
+  isPopular        Boolean           @default(false)
+  isAvailable      Boolean           @default(true)
+  isActive         Boolean           @default(true)
+  sortOrder        Int               @default(0)
+  preparationTime  String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  variants         MenuItemVariant[]
+  dealItems        DealItem[]
+  orderItems       OrderItem[]
+
+  @@index([categoryId])
+  @@index([isActive])
+  @@index([isFeatured])
+}
+
+model MenuItemVariant {
+  id          String     @id @default(uuid())
+  menuItemId  String
+  menuItem    MenuItem   @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  name        String
+  price       Float
+  isAvailable Boolean    @default(true)
+  sortOrder   Int        @default(0)
+  dealItems   DealItem[]
+}
+
+model MenuAddon {
+  id          String   @id @default(uuid())
+  name        String
+  price       Float
+  isAvailable Boolean  @default(true)
+  sortOrder   Int      @default(0)
+}
+
+model Deal {
+  id                 String      @id @default(uuid())
+  title              String
+  slug               String      @unique
+  shortDescription   String?
+  description        String?
+  image              String
+  gallery            String?     // JSON array string
+  originalPrice      Float
+  dealPrice          Float
+  discountType       String      @default("FIXED") // FIXED | PERCENTAGE
+  discountValue      Float       @default(0)
+  startDate          DateTime?
+  endDate            DateTime?
+  startTime          String?
+  endTime            String?
+  isActive           Boolean     @default(true)
+  isFeatured         Boolean     @default(false)
+  isHomepageFeatured Boolean     @default(false)
+  sortOrder          Int         @default(0)
+  terms              String?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  dealItems          DealItem[]
+  orderItems         OrderItem[]
+
+  @@index([isActive])
+}
+
+model DealItem {
+  id         String           @id @default(uuid())
+  dealId     String
+  deal       Deal             @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  menuItemId String
+  menuItem   MenuItem         @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  variantId  String?
+  variant    MenuItemVariant? @relation(fields: [variantId], references: [id])
+  quantity   Int              @default(1)
+}
+
+model Customer {
+  id        String    @id @default(uuid())
+  name      String
+  phone     String    @unique
+  email     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  orders    Order[]
+
+  @@index([phone])
+}
+
+model Order {
+  id              String      @id @default(uuid())
+  orderNumber     String      @unique
+  customerId      String?
+  customer        Customer?   @relation(fields: [customerId], references: [id])
+  customerName    String
+  customerPhone   String
+  customerEmail   String?
+  deliveryAddress String?
+  deliveryArea    String?
+  deliveryNotes   String?
+  orderType       String      @default("DELIVERY") // DELIVERY | PICKUP | DINE_IN
+  orderStatus     String      @default("PENDING")  // PENDING | CONFIRMED | PREPARING | READY | OUT_FOR_DELIVERY | COMPLETED | CANCELLED | REFUNDED
+  paymentMethod   String      @default("CASH_ON_DELIVERY") // CASH_ON_DELIVERY | CASH_ON_PICKUP | ONLINE
+  paymentStatus   String      @default("PENDING")  // PENDING | PAID | FAILED | REFUNDED
+  subtotal        Float
+  discountAmount  Float       @default(0)
+  deliveryFee     Float       @default(0)
+  totalAmount     Float
+  couponCode      String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  orderItems      OrderItem[]
+  payments        Payment[]
+
+  @@index([orderStatus])
+  @@index([createdAt])
+  @@index([orderNumber])
+}
+
+model OrderItem {
+  id          String           @id @default(uuid())
+  orderId     String
+  order       Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItemId  String?
+  menuItem    MenuItem?        @relation(fields: [menuItemId], references: [id])
+  dealId      String?
+  deal        Deal?            @relation(fields: [dealId], references: [id])
+  name        String
+  price       Float
+  quantity    Int
+  variantName String?
+  notes       String?
+  addons      OrderItemAddon[]
+}
+
+model OrderItemAddon {
+  id          String    @id @default(uuid())
+  orderItemId String
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  addonName   String
+  price       Float
+}
+
+model Payment {
+  id                   String    @id @default(uuid())
+  orderId              String
+  order                Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  paymentMethod        String
+  paymentStatus        String
+  transactionReference String?
+  amount               Float
+  paidAt               DateTime?
+  createdAt            DateTime  @default(now())
+}
+
+model Reservation {
+  id             String           @id @default(uuid())
+  name           String
+  phone          String
+  email          String?
+  date           String           // YYYY-MM-DD
+  time           String           // HH:mm
+  guests         Int
+  specialRequest String?
+  tableId        String?
+  table          RestaurantTable? @relation(fields: [tableId], references: [id])
+  status         String           @default("PENDING") // PENDING | CONFIRMED | SEATED | COMPLETED | CANCELLED | NO_SHOW
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([date])
+  @@index([status])
+}
+
+model RestaurantTable {
+  id           String        @id @default(uuid())
+  tableNumber  String        @unique
+  capacity     Int
+  area         String        @default("MAIN_DINING") // MAIN_DINING | FAMILY_HALL | OUTDOOR
+  status       String        @default("AVAILABLE") // AVAILABLE | OCCUPIED | RESERVED
+  reservations Reservation[]
+}
+
+model Offer {
+  id            String    @id @default(uuid())
+  title         String
+  description   String?
+  image         String?
+  discountType  String    @default("PERCENTAGE")
+  discountValue Float
+  startDate     DateTime?
+  endDate       DateTime?
+  minOrder      Float     @default(0)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+}
+
+model Coupon {
+  id               String             @id @default(uuid())
+  code             String             @unique
+  discountType     String             @default("PERCENTAGE") // PERCENTAGE | FIXED
+  discountValue    Float
+  minOrder         Float              @default(0)
+  maxDiscount      Float?
+  usageLimit       Int?
+  usedCount        Int                @default(0)
+  perCustomerLimit Int                @default(1)
+  startDate        DateTime?
+  endDate          DateTime?
+  isActive         Boolean            @default(true)
+  createdAt        DateTime           @default(now())
+  redemptions      CouponRedemption[]
+}
+
+model CouponRedemption {
+  id            String   @id @default(uuid())
+  couponId      String
+  coupon        Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  orderId       String
+  customerPhone String
+  redeemedAt    DateTime @default(now())
+}
+
+model Review {
+  id          String   @id @default(uuid())
+  name        String
+  rating      Int
+  comment     String
+  orderNumber String?
+  status      String   @default("PENDING") // PENDING | APPROVED | REJECTED
+  createdAt   DateTime @default(now())
+}
+
+model Testimonial {
+  id         String   @id @default(uuid())
+  name       String
+  photo      String?
+  rating     Int      @default(5)
+  comment    String
+  isFeatured Boolean  @default(true)
+  sortOrder  Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+}
+
+model Media {
+  id        String   @id @default(uuid())
+  filename  String
+  url       String
+  altText   String?
+  width     Int?
+  height    Int?
+  fileSize  Int?
+  mimeType  String?
+  createdAt DateTime @default(now())
+}
+
+model GalleryItem {
+  id        String   @id @default(uuid())
+  title     String
+  altText   String?
+  url       String
+  category  String   @default("BBQ") // BBQ | RESTAURANT | FOOD | EVENTS
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Page {
+  id             String   @id @default(uuid())
+  title          String
+  slug           String   @unique
+  content        String
+  seoTitle       String?
+  seoDescription String?
+  ogImage        String?
+  isPublished    Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model HomepageSection {
+  id         String  @id @default(uuid())
+  sectionKey String  @unique
+  title      String?
+  subtitle   String?
+  content    String?
+  isEnabled  Boolean @default(true)
+  sortOrder  Int     @default(0)
+}
+
+model Banner {
+  id        String    @id @default(uuid())
+  title     String
+  subtitle  String?
+  image     String
+  ctaText   String?
+  ctaUrl    String?
+  startDate DateTime?
+  endDate   DateTime?
+  isActive  Boolean   @default(true)
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String?
+  title     String
+  message   String
+  type      String   @default("INFO") // INFO | ORDER | RESERVATION | DEAL
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([isRead])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  userName   String?
+  user       User?    @relation(fields: [userId], references: [id])
+  action     String
+  entityType String
+  entityId   String?
+  metadata   String?  // JSON string
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model RestaurantSetting {
+  id    String @id @default(uuid())
+  key   String @unique
+  value String
+}
+
+model BusinessHour {
+  id        String  @id @default(uuid())
+  dayOfWeek String  @unique // MONDAY, TUESDAY...
+  isOpen    Boolean @default(true)
+  openTime  String  @default("12:00")
+  closeTime String  @default("00:00")
+}
+
+model SeoSetting {
+  id              String  @id @default(uuid())
+  pageKey         String  @unique // home, menu, deals, contact, etc.
+  metaTitle       String
+  metaDescription String
+  ogImage         String?
+  keywords        String?
+}

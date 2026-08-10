@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Flame, Shield, AlertTriangle, Sparkles, CheckCircle2 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Flame, CheckCircle2 } from 'lucide-react';
 import { SectionHeading } from './ui/SectionHeading';
 
 type HeatLevel = 'MILD' | 'MEDIUM' | 'FIRE HOT';
@@ -30,7 +30,7 @@ export const SpiceCustomizer: React.FC = () => {
       description:
         'Smooth, fragrant marinades using cream, white pepper, cardamom, and gentle coriander. Ideal for guests who prefer low chili heat with maximum rich taste.',
       spiceMeter: 30,
-      accentColor: '#FF9D32',
+      accentColor: '#C69A45',
       recommended: ['Reshmi Malai Boti', 'Creamy Malai Feast Platter', 'Tandoori Garlic Naan'],
     },
     MEDIUM: {
@@ -41,7 +41,7 @@ export const SpiceCustomizer: React.FC = () => {
       description:
         'The signature Tawakal house heat balance. Red chili flakes, cumin, black pepper, and garlic charred over coals for authentic street-style BBQ flavor.',
       spiceMeter: 65,
-      accentColor: '#FF6A00',
+      accentColor: '#D96A2B',
       recommended: ['Tawakal Special Chicken Tikka', 'Smokey Seekh Kebab', 'Royal BBQ Platter'],
     },
     'FIRE HOT': {
@@ -52,7 +52,7 @@ export const SpiceCustomizer: React.FC = () => {
       description:
         'Seared with roasted whole crushed red chilies, fiery ginger pulp, mustard oil, and black peppercorns. Prepared for true heat aficionados.',
       spiceMeter: 95,
-      accentColor: '#8F1D12',
+      accentColor: '#C83B22',
       recommended: ['Fire Beef Boti', 'Stuffed Chili Kebabs', 'Sizzling Fire & Flame Combo'],
     },
   };
@@ -60,7 +60,7 @@ export const SpiceCustomizer: React.FC = () => {
   const currentOption = heatOptions[selectedHeat];
 
   return (
-    <section className="relative py-28 px-4 sm:px-6 lg:px-8 bg-[#111111] border-b border-[#191919] overflow-hidden">
+    <section className="relative py-28 px-4 sm:px-6 lg:px-8 bg-[#11100E] border-b border-[#F4EBDD]/10 overflow-hidden">
       {/* Background glow shift based on selected heat */}
       <div
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[450px] rounded-full blur-[140px] pointer-events-none transition-colors duration-700 opacity-20"
@@ -83,10 +83,10 @@ export const SpiceCustomizer: React.FC = () => {
               <button
                 key={level}
                 onClick={() => setSelectedHeat(level)}
-                className={`relative flex-1 w-full py-4 px-6 font-serif font-bold tracking-widest uppercase transition-all duration-300 border flex items-center justify-center gap-3 cursor-pointer ${
+                className={`relative flex-1 w-full py-4 px-6 font-sans font-bold text-xs tracking-wider uppercase transition-all duration-300 border flex items-center justify-center gap-3 cursor-pointer rounded-lg ${
                   isActive
-                    ? 'bg-[#191919] text-[#F5F1EA] shadow-[0_0_25px_rgba(255,106,0,0.3)]'
-                    : 'bg-[#070707] text-[#A7A7A7] border-[#191919] hover:border-[#FF6A00]/40 hover:text-[#F5F1EA]'
+                    ? 'bg-[#1A1815] text-[#F4EBDD] shadow-lg'
+                    : 'bg-[#11100E] text-[#B8B0A5] border-[#F4EBDD]/10 hover:border-[#C83B22]/40 hover:text-[#F4EBDD]'
                 }`}
                 style={{
                   borderColor: isActive ? item.accentColor : undefined,
@@ -96,7 +96,7 @@ export const SpiceCustomizer: React.FC = () => {
                 {isActive && (
                   <motion.div
                     layoutId="heatActiveTab"
-                    className="absolute top-0 left-0 right-0 h-1"
+                    className="absolute top-0 left-0 right-0 h-1 rounded-t-lg"
                     style={{ backgroundColor: item.accentColor }}
                   />
                 )}
@@ -107,36 +107,36 @@ export const SpiceCustomizer: React.FC = () => {
                   }`}
                   style={{ color: isActive ? item.accentColor : undefined }}
                 />
-                <span className="text-sm">{item.label}</span>
+                <span>{item.label}</span>
               </button>
             );
           })}
         </div>
 
         {/* Heat Details Card */}
-        <div className="mt-10 bg-[#191919] border border-[#FF6A00]/25 p-8 sm:p-12 shadow-[0_20px_50px_rgba(0,0,0,0.8)] relative">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border-b border-[#070707] pb-8">
+        <div className="mt-10 bg-[#1A1815] border border-[#F4EBDD]/15 p-8 sm:p-12 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] relative">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border-b border-[#11100E] pb-8">
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <span
-                  className="px-3 py-1 text-xs font-bold uppercase tracking-widest text-black"
+                  className="px-3 py-1 font-sans text-xs font-bold uppercase tracking-wider text-[#11100E] rounded"
                   style={{ backgroundColor: currentOption.accentColor }}
                 >
                   {currentOption.label}
                 </span>
-                <span className="text-sm font-serif text-[#A7A7A7]">
+                <span className="font-urdu text-sm text-[#C69A45]">
                   {currentOption.urdu}
                 </span>
               </div>
-              <h3 className="font-serif text-2xl sm:text-3xl font-bold tracking-wider text-[#F5F1EA]">
+              <h3 className="font-food text-2xl sm:text-3xl font-normal text-[#F4EBDD]">
                 "{currentOption.tagline}"
               </h3>
             </div>
 
             {/* Heat Meter Progress Bar */}
-            <div className="w-full md:w-64 bg-[#070707] p-4 border border-white/5 flex flex-col gap-2">
-              <div className="flex justify-between text-xs tracking-wider uppercase">
-                <span className="text-[#A7A7A7]">HEAT INTENSITY</span>
+            <div className="w-full md:w-64 bg-[#11100E] p-4 border border-[#F4EBDD]/10 rounded-lg flex flex-col gap-2">
+              <div className="flex justify-between font-sans text-xs tracking-wider uppercase">
+                <span className="text-[#B8B0A5]">HEAT INTENSITY</span>
                 <span
                   className="font-bold"
                   style={{ color: currentOption.accentColor }}
@@ -144,32 +144,32 @@ export const SpiceCustomizer: React.FC = () => {
                   {currentOption.spiceMeter}%
                 </span>
               </div>
-              <div className="w-full h-2 bg-[#111111] overflow-hidden">
+              <div className="w-full h-2 bg-[#1A1815] rounded-full overflow-hidden">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${currentOption.spiceMeter}%` }}
                   transition={{ duration: 0.6, ease: 'easeOut' }}
-                  className="h-full"
+                  className="h-full rounded-full"
                   style={{ backgroundColor: currentOption.accentColor }}
                 />
               </div>
             </div>
           </div>
 
-          <p className="mt-6 text-base text-[#A7A7A7] font-light leading-relaxed">
+          <p className="mt-6 font-sans text-sm sm:text-base text-[#B8B0A5] font-normal leading-relaxed">
             {currentOption.description}
           </p>
 
           {/* Recommended Dishes */}
-          <div className="mt-8 pt-6 border-t border-[#070707]">
-            <span className="text-xs uppercase tracking-[0.25em] font-semibold text-[#FF9D32] block mb-3">
+          <div className="mt-8 pt-6 border-t border-[#11100E]">
+            <span className="font-sans text-xs uppercase tracking-[0.2em] font-bold text-[#C69A45] block mb-3">
               RECOMMENDED PAIRINGS AT THIS HEAT LEVEL:
             </span>
             <div className="flex flex-wrap gap-3">
               {currentOption.recommended.map((dishName) => (
                 <span
                   key={dishName}
-                  className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-[#070707] border border-white/10 text-xs text-[#F5F1EA] font-light tracking-wide"
+                  className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-[#11100E] border border-[#F4EBDD]/10 text-xs text-[#F4EBDD] font-sans font-normal tracking-wide rounded-md"
                 >
                   <CheckCircle2
                     className="w-3.5 h-3.5"

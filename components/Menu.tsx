@@ -1,55 +1,92 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Flame, Filter } from 'lucide-react';
-import { MENU_CATEGORIES, MENU_ITEMS, MenuItemType } from '@/data/menu';
+import { Search, Flame } from 'lucide-react';
+import { MENU_CATEGORIES as FALLBACK_CATEGORIES, MENU_ITEMS as FALLBACK_ITEMS } from '@/data/menu';
 import { SectionHeading } from './ui/SectionHeading';
 import { MenuItem } from './ui/MenuItem';
 
 interface MenuProps {
-  onOrderDish?: (dishName: string) => void;
+  onOrderDish?: (dishName: string, dishId?: string, price?: number) => void;
 }
 
 export const Menu: React.FC<MenuProps> = ({ onOrderDish }) => {
   const [activeCategory, setActiveCategory] = useState<string>('bbq');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [categories, setCategories] = useState<any[]>(FALLBACK_CATEGORIES as any);
+  const [menuItems, setMenuItems] = useState<any[]>(FALLBACK_ITEMS);
 
-  const filteredItems = MENU_ITEMS.filter((item) => {
+  useEffect(() => {
+    fetch('/api/menu')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.categories && data.categories.length > 0) {
+          setCategories(
+            data.categories.map((c: any) => ({
+              id: c.slug,
+              label: c.name,
+            }))
+          );
+        }
+        if (data.items && data.items.length > 0) {
+          setMenuItems(
+            data.items.map((i: any) => ({
+              id: i.id,
+              name: i.name,
+              urduName: i.urduName,
+              description: i.description || i.shortDescription,
+              price: `Rs. ${i.price}`,
+              rawPrice: i.price,
+              category: i.category?.slug || 'bbq',
+              image: i.image,
+              isPopular: i.isPopular,
+              isChefSpecial: i.isFeatured,
+              tags: i.isFeatured ? ['Best Seller', 'Live Fire'] : ['Fresh Charcoal'],
+            }))
+          );
+        }
+      })
+      .catch((err) => {
+        console.log('Using static menu fallback:', err);
+      });
+  }, []);
+
+  const filteredItems = menuItems.filter((item) => {
     const matchesCategory =
       activeCategory === 'all' || item.category === activeCategory;
     const matchesSearch =
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchQuery.toLowerCase());
+      (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesCategory && matchesSearch;
   });
 
   return (
     <section
       id="menu"
-      className="relative py-28 px-4 sm:px-6 lg:px-8 bg-[#111111] border-b border-[#191919]"
+      className="relative py-28 px-4 sm:px-6 lg:px-8 bg-[#11100E] border-b border-[#F4EBDD]/10"
     >
       <div className="max-w-7xl mx-auto">
         <SectionHeading
-          eyebrow="TASTE THE SELECTION"
-          title="OUR INTERACTIVE MENU"
+          eyebrow="OUR MENU"
+          title="AUTHENTIC FIRE-SEARED SELECTION"
           subtitle="Explore live charcoal delicacies, signature skewers, and fresh oven-baked breads."
         />
 
         {/* Category Segmented Tabs & Search Bar */}
-        <div className="mt-12 flex flex-col md:flex-row items-center justify-between gap-6 pb-6 border-b border-[#191919]">
+        <div className="mt-12 flex flex-col md:flex-row items-center justify-between gap-6 pb-6 border-b border-[#F4EBDD]/10">
           {/* Category Tabs */}
           <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 scrollbar-none">
-            {MENU_CATEGORIES.map((cat) => {
+            {categories.map((cat) => {
               const isActive = activeCategory === cat.id;
               return (
                 <button
                   key={cat.id}
                   onClick={() => setActiveCategory(cat.id)}
-                  className={`px-5 py-2.5 font-serif text-xs font-bold tracking-widest uppercase transition-all duration-300 whitespace-nowrap cursor-pointer ${
+                  className={`px-4 py-2 font-sans text-xs font-semibold tracking-wider uppercase transition-all duration-300 whitespace-nowrap cursor-pointer rounded-md ${
                     isActive
-                      ? 'bg-[#FF6A00] text-[#070707] shadow-[0_0_15px_rgba(255,106,0,0.4)]'
-                      : 'bg-[#191919] text-[#A7A7A7] hover:text-[#F5F1EA] hover:bg-[#252525] border border-white/5'
+                      ? 'bg-[#C83B22] text-[#F4EBDD] shadow-[0_4px_15px_rgba(200,59,34,0.35)]'
+                      : 'bg-[#1A1815] text-[#B8B0A5] hover:text-[#F4EBDD] hover:bg-[#24211D] border border-[#F4EBDD]/10'
                   }`}
                 >
                   {cat.label}
@@ -60,13 +97,13 @@ export const Menu: React.FC<MenuProps> = ({ onOrderDish }) => {
 
           {/* Search Bar Input */}
           <div className="relative w-full md:w-72">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A7A7A7]" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#B8B0A5]" />
             <input
               type="text"
               placeholder="Search dishes or ingredients..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#070707] border border-[#FF6A00]/30 text-xs text-[#F5F1EA] pl-10 pr-4 py-2.5 rounded-none focus:outline-none focus:border-[#FF6A00] placeholder:text-[#A7A7A7]/60"
+              className="w-full bg-[#1A1815] border border-[#F4EBDD]/15 text-xs text-[#F4EBDD] pl-10 pr-4 py-2.5 rounded-lg focus:outline-none focus:border-[#C83B22] placeholder:text-[#B8B0A5]/60 font-sans"
             />
           </div>
         </div>
@@ -79,18 +116,22 @@ export const Menu: React.FC<MenuProps> = ({ onOrderDish }) => {
           <AnimatePresence mode="popLayout">
             {filteredItems.length > 0 ? (
               filteredItems.map((item) => (
-                <MenuItem key={item.id} item={item} onOrder={onOrderDish} />
+                <MenuItem
+                  key={item.id}
+                  item={item}
+                  onOrder={() => onOrderDish && onOrderDish(item.name, item.id, item.rawPrice)}
+                />
               ))
             ) : (
-              <div className="col-span-full py-16 text-center text-[#A7A7A7]">
-                <Flame className="w-10 h-10 text-[#FF6A00] mx-auto mb-3 opacity-40 animate-pulse" />
-                <p className="text-lg font-serif">No menu items match your query.</p>
+              <div className="col-span-full py-16 text-center text-[#B8B0A5]">
+                <Flame className="w-10 h-10 text-[#C83B22] mx-auto mb-3 opacity-50 animate-pulse" />
+                <p className="font-food text-xl text-[#F4EBDD]">No menu items match your query.</p>
                 <button
                   onClick={() => {
                     setActiveCategory('bbq');
                     setSearchQuery('');
                   }}
-                  className="mt-4 text-xs font-semibold text-[#FF6A00] uppercase tracking-wider underline cursor-pointer"
+                  className="mt-4 font-sans text-xs font-bold text-[#C83B22] uppercase tracking-wider underline cursor-pointer"
                 >
                   Reset Menu Filter
                 </button>

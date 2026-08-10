@@ -17,44 +17,44 @@ export const DishCard: React.FC<DishCardProps> = ({ dish, onOrder }) => {
       initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-50px' }}
-      whileHover={{ y: -8, scale: 1.02 }}
-      transition={{ duration: 0.4 }}
-      className="group relative flex flex-col justify-between bg-[#191919] border border-[#FF6A00]/20 hover:border-[#FF6A00]/70 rounded-none transition-all duration-300 shadow-[0_15px_35px_rgba(0,0,0,0.6)] hover:shadow-[0_20px_45px_rgba(255,106,0,0.25)] overflow-hidden"
+      whileHover={{ y: -4 }}
+      transition={{ duration: 0.3 }}
+      className="food-card group relative flex flex-col justify-between"
     >
-      {/* Top Subtle Flame Border Highlight */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#FF6A00]/0 to-transparent group-hover:via-[#FF6A00] transition-all duration-500 z-20" />
+      {/* Subtle Flame Top Accent */}
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[var(--color-primary)]/0 to-transparent group-hover:via-[var(--color-primary)] transition-all duration-500 z-20" />
 
       <div>
         {/* Dish Image Header Container */}
-        <div className="relative h-52 w-full overflow-hidden bg-[#070707] border-b border-[#FF6A00]/20">
+        <div className="relative w-full overflow-hidden bg-[#11100E] border-b border-[var(--color-border)]">
           <img
             src={dish.image}
             alt={dish.name}
             loading="lazy"
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 filter brightness-95 contrast-105"
+            className="food-card-image filter brightness-95 contrast-105"
           />
 
           {/* Dark Overlay Gradient */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#191919] via-transparent to-black/50 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-surface)] via-transparent to-black/40 pointer-events-none" />
 
           {/* Badge & Heat Level Overlaid on Image */}
           <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#070707]/90 backdrop-blur-md border border-[#FF6A00]/40 text-[10px] font-extrabold tracking-widest text-[#FF9D32] uppercase shadow-md">
-              <Sparkles className="w-3 h-3 text-[#FF6A00]" />
-              {dish.badge || 'Chef Favorite'}
+            <span className="badge border border-[var(--color-gold)]/30 text-[var(--color-gold)] bg-[var(--color-bg)]/90 backdrop-blur-md">
+              <Sparkles className="w-3 h-3 text-[var(--color-gold)] mr-1" />
+              {dish.badge || 'CHEF SPECIAL'}
             </span>
 
-            <div className="flex items-center gap-1 bg-[#070707]/90 backdrop-blur-md px-2.5 py-1 border border-white/10 shadow-md">
+            <div className="flex items-center gap-1 bg-[var(--color-bg)]/90 backdrop-blur-md px-2.5 py-1 border border-white/10 rounded-md shadow">
               <Flame
                 className={`w-3.5 h-3.5 ${
                   dish.heatLevel === 'Fire Hot'
-                    ? 'text-[#FF6A00] fill-[#FF6A00]'
+                    ? 'text-[var(--color-primary)] fill-[var(--color-primary)]'
                     : dish.heatLevel === 'Medium'
-                    ? 'text-[#FF9D32] fill-[#FF9D32]/50'
-                    : 'text-[#A7A7A7]'
+                    ? 'text-[var(--color-orange)] fill-[var(--color-orange)]/60'
+                    : 'text-[var(--color-text-muted)]'
                 }`}
               />
-              <span className="text-[10px] font-bold tracking-wider text-[#F5F1EA] uppercase">
+              <span className="font-sans text-[10px] font-bold tracking-wider text-[var(--color-text)] uppercase">
                 {dish.heatLevel}
               </span>
             </div>
@@ -66,43 +66,43 @@ export const DishCard: React.FC<DishCardProps> = ({ dish, onOrder }) => {
           {/* Dish Titles */}
           <div className="mb-3">
             <div className="flex items-baseline justify-between gap-2">
-              <h3 className="font-serif text-2xl font-bold tracking-wider text-[#F5F1EA] group-hover:text-[#FF9D32] transition-colors leading-tight">
+              <h3 className="font-serif text-2xl sm:text-3xl font-normal text-[var(--color-text)] group-hover:text-[var(--color-orange)] transition-colors leading-tight">
                 {dish.name}
               </h3>
               {dish.urduName && (
-                <span className="text-sm font-serif text-[#FF6A00]/80 tracking-widest shrink-0">
+                <span className="font-urdu text-base text-[var(--color-text-secondary)] shrink-0">
                   {dish.urduName}
                 </span>
               )}
             </div>
-            <p className="text-[11px] uppercase tracking-widest text-[#FF6A00] font-semibold mt-1">
+            <p className="font-sans text-[11px] uppercase tracking-wider text-[var(--color-primary)] font-bold mt-1">
               {dish.tagline}
             </p>
           </div>
 
           {/* Description */}
-          <p className="text-xs sm:text-sm text-[#A7A7A7] font-light leading-relaxed group-hover:text-[#F5F1EA]/90 transition-colors">
+          <p className="font-sans text-xs sm:text-sm text-[var(--color-text-muted)] font-normal leading-relaxed group-hover:text-[var(--color-text-secondary)] transition-colors">
             {dish.description}
           </p>
         </div>
       </div>
 
       {/* Footer / Price & Order */}
-      <div className="p-6 pt-4 border-t border-[#070707] flex items-center justify-between mt-auto bg-[#141414]">
+      <div className="p-6 pt-4 border-t border-[var(--color-border)] flex items-center justify-between mt-auto bg-[#1A1714]">
         <div className="flex flex-col">
-          <span className="text-[9px] uppercase tracking-widest text-[#A7A7A7]">
+          <span className="font-sans text-[9px] uppercase tracking-widest text-[var(--color-text-muted)] font-semibold">
             PRICE
           </span>
-          <span className="font-serif text-2xl font-extrabold text-[#F5F1EA] group-hover:text-[#FF9D32] transition-colors">
+          <span className="font-sans text-2xl font-bold text-[var(--color-text)] group-hover:text-[var(--color-orange)] transition-colors">
             {dish.price}
           </span>
         </div>
 
         <Button
           size="sm"
-          variant="secondary"
+          variant="primary"
           onClick={() => onOrder?.(dish.name)}
-          className="text-xs group-hover:bg-[#FF6A00] group-hover:text-[#070707] group-hover:border-[#FF6A00] transition-colors px-5 py-2 font-bold"
+          className="text-xs px-5 py-2 font-bold"
         >
           ORDER NOW
         </Button>

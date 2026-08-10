@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Flame, Menu as MenuIcon, X, Phone, ShoppingBag } from 'lucide-react';
+import { Flame, Menu as MenuIcon, X, ShoppingBag } from 'lucide-react';
 import { Button } from './ui/Button';
 
 interface NavbarProps {
@@ -36,8 +36,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOrderClick }) => {
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
           scrolled
-            ? 'bg-[#070707]/95 backdrop-blur-md border-b border-[#FF6A00]/30 py-3.5 shadow-[0_10px_30px_rgba(0,0,0,0.9)]'
-            : 'bg-gradient-to-b from-[#070707] via-[#070707]/70 to-transparent py-5 border-b border-white/5'
+            ? 'bg-[#11100E]/95 backdrop-blur-md border-b border-[#F4EBDD]/10 py-3.5 shadow-[0_10px_30px_rgba(0,0,0,0.8)]'
+            : 'bg-gradient-to-b from-[#11100E] via-[#11100E]/80 to-transparent py-5 border-b border-white/5'
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
@@ -47,29 +47,29 @@ export const Navbar: React.FC<NavbarProps> = ({ onOrderClick }) => {
             className="flex items-center gap-2.5 group cursor-pointer"
             id="nav-logo"
           >
-            <div className="w-10 h-10 rounded-full bg-[#191919] border border-[#FF6A00]/40 flex items-center justify-center group-hover:border-[#FF6A00] transition-colors duration-300 shadow-[0_0_15px_rgba(255,106,0,0.2)]">
-              <Flame className="w-5 h-5 text-[#FF6A00] group-hover:scale-110 transition-transform duration-300" />
+            <div className="w-10 h-10 rounded-full bg-[#1A1815] border border-[#C83B22]/40 flex items-center justify-center group-hover:border-[#C83B22] transition-colors duration-300 shadow-[0_0_15px_rgba(200,59,34,0.2)]">
+              <Flame className="w-5 h-5 text-[#C83B22] group-hover:scale-110 transition-transform duration-300" />
             </div>
             <div className="flex flex-col">
-              <span className="font-serif text-xl sm:text-2xl font-bold tracking-widest text-[#F5F1EA] group-hover:text-[#FF9D32] transition-colors">
-                TAWAKAL <span className="text-[#FF6A00]">BBQ</span>
+              <span className="font-bebas text-2xl sm:text-3xl tracking-widest text-[#F4EBDD] group-hover:text-[#D96A2B] transition-colors leading-none">
+                TAWAKAL <span className="text-[#C83B22]">BBQ</span>
               </span>
-              <span className="text-[9px] uppercase tracking-[0.3em] text-[#A7A7A7] -mt-1 font-light">
+              <span className="font-sans text-[9px] uppercase tracking-[0.25em] text-[#B8B0A5] font-medium pt-0.5">
                 Authentic Fire Grilled
               </span>
             </div>
           </a>
 
           {/* Desktop Nav Links */}
-          <nav className="hidden md:flex items-center gap-8">
+          <nav className="hidden md:flex items-center gap-7">
             {navLinks.map((link) => (
               <a
                 key={link.name}
                 href={link.href}
-                className="text-xs tracking-[0.2em] font-semibold text-[#F5F1EA]/80 hover:text-[#FF6A00] transition-colors duration-200 relative py-1 group"
+                className="font-sans text-xs tracking-[0.18em] font-medium text-[#F4EBDD]/85 hover:text-[#C83B22] transition-colors duration-200 relative py-1 group"
               >
                 {link.name}
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#FF6A00] group-hover:w-full transition-all duration-300" />
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#C83B22] group-hover:w-full transition-all duration-300" />
               </a>
             ))}
           </nav>
@@ -91,11 +91,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onOrderClick }) => {
           <button
             id="mobile-menu-toggle"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 text-[#F5F1EA] hover:text-[#FF6A00] focus:outline-none"
+            className="md:hidden p-2 text-[#F4EBDD] hover:text-[#C83B22] focus:outline-none min-h-[44px] min-w-[44px] flex items-center justify-center"
             aria-label="Toggle Navigation Menu"
           >
             {mobileMenuOpen ? (
-              <X className="w-7 h-7 text-[#FF6A00]" />
+              <X className="w-7 h-7 text-[#C83B22]" />
             ) : (
               <MenuIcon className="w-7 h-7" />
             )}
@@ -111,23 +111,23 @@ export const Navbar: React.FC<NavbarProps> = ({ onOrderClick }) => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-40 bg-[#070707]/98 backdrop-blur-xl md:hidden pt-24 px-6 pb-10 flex flex-col justify-between border-b border-[#FF6A00]/30"
+            className="fixed inset-0 z-40 bg-[#11100E]/98 backdrop-blur-xl md:hidden pt-24 px-6 pb-10 flex flex-col justify-between border-b border-[#C83B22]/30"
           >
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-5">
               {navLinks.map((link) => (
                 <a
                   key={link.name}
                   href={link.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="text-xl font-serif font-semibold tracking-widest text-[#F5F1EA] hover:text-[#FF6A00] border-b border-[#191919] pb-3 transition-colors flex items-center justify-between"
+                  className="font-bebas text-3xl tracking-widest text-[#F4EBDD] hover:text-[#C83B22] border-b border-[#1A1815] pb-3 transition-colors flex items-center justify-between min-h-[44px]"
                 >
                   <span>{link.name}</span>
-                  <span className="text-[#FF6A00] text-sm">→</span>
+                  <span className="text-[#C83B22] text-xl">→</span>
                 </a>
               ))}
             </div>
 
-            <div className="flex flex-col gap-4 mt-8 pt-6 border-t border-[#191919]">
+            <div className="flex flex-col gap-4 mt-8 pt-6 border-t border-[#1A1815]">
               <Button
                 id="mobile-nav-order-btn"
                 size="lg"
@@ -141,8 +141,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOrderClick }) => {
                 ORDER NOW
               </Button>
 
-              <div className="text-center text-xs text-[#A7A7A7] tracking-wider uppercase pt-2">
-                Where Fire Meets Flavor • Live BBQ Daily
+              <div className="font-sans text-center text-xs text-[#B8B0A5] tracking-wider uppercase pt-2 font-medium">
+                Where Fire Meets Flavor • Authentic BBQ Daily
               </div>
             </div>
           </motion.div>

@@ -1,18 +1,6 @@
 import type { Metadata, Viewport } from 'next';
-import { Outfit, Cinzel, Bebas_Neue } from 'next/font/google';
+import { Bebas_Neue, DM_Serif_Display, Inter, Noto_Nastaliq_Urdu } from 'next/font/google';
 import './globals.css';
-
-const outfit = Outfit({
-  subsets: ['latin'],
-  variable: '--font-outfit',
-  display: 'swap',
-});
-
-const cinzel = Cinzel({
-  subsets: ['latin'],
-  variable: '--font-cinzel',
-  display: 'swap',
-});
 
 const bebasNeue = Bebas_Neue({
   weight: '400',
@@ -21,17 +9,37 @@ const bebasNeue = Bebas_Neue({
   display: 'swap',
 });
 
+const dmSerifDisplay = DM_Serif_Display({
+  weight: '400',
+  subsets: ['latin'],
+  variable: '--font-dm-serif',
+  display: 'swap',
+});
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+});
+
+const notoUrdu = Noto_Nastaliq_Urdu({
+  weight: ['400', '700'],
+  subsets: ['arabic'],
+  variable: '--font-urdu',
+  display: 'swap',
+});
+
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
-  themeColor: '#070707',
+  themeColor: '#11100E',
 };
 
 export const metadata: Metadata = {
-  title: 'Tawakal BBQ | Authentic Fire-Grilled BBQ',
+  title: 'Tawakal BBQ | Authentic Pakistani Fire-Grilled BBQ',
   description:
-    'Experience authentic Pakistani BBQ at Tawakal BBQ — premium fire-grilled flavors, signature platters and an unforgettable dining experience.',
+    'Experience authentic Pakistani BBQ at Tawakal BBQ — live charcoal grilling, heritage marinades, signature platters and a warm dining atmosphere.',
   keywords: [
     'Tawakal BBQ',
     'Pakistani BBQ',
@@ -47,7 +55,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Tawakal BBQ | Authentic Fire-Grilled BBQ',
     description:
-      'Where Fire Meets Flavor. Discover authentic charcoal-grilled delicacies, signature platters and a luxury dining atmosphere.',
+      'Where Fire Meets Flavor. Discover authentic charcoal-grilled delicacies, signature platters and a modern Pakistani dining atmosphere.',
     type: 'website',
     locale: 'en_US',
     siteName: 'Tawakal BBQ',
@@ -56,7 +64,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Tawakal BBQ | Authentic Fire-Grilled BBQ',
     description:
-      'Experience authentic Pakistani BBQ at Tawakal BBQ — premium fire-grilled flavors & signature platters.',
+      'Experience authentic Pakistani BBQ at Tawakal BBQ — live charcoal-grilled flavors & signature platters.',
   },
 };
 
@@ -68,9 +76,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${outfit.variable} ${cinzel.variable} ${bebasNeue.variable} dark scroll-smooth`}
+      className={`${bebasNeue.variable} ${dmSerifDisplay.variable} ${inter.variable} ${notoUrdu.variable} dark scroll-smooth`}
     >
-      <body className="bg-[#070707] text-[#F5F1EA] antialiased selection:bg-[#FF6A00] selection:text-black">
+      <body className="bg-[#11100E] text-[#F4EBDD] font-sans antialiased selection:bg-[#C83B22] selection:text-white">
         {children}
       </body>
     </html>
