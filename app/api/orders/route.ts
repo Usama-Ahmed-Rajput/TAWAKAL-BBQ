@@ -82,7 +82,7 @@ export async function POST(request: Request) {
         let variantName = null;
 
         if (cartItem.variantId) {
-          const variant = menuItem.variants.find((v) => v.id === cartItem.variantId);
+          const variant = menuItem.variants.find((v: any) => v.id === cartItem.variantId);
           if (variant) {
             unitPrice = variant.price;
             variantName = variant.name;

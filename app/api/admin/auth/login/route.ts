@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
 
-    const permissions = user.role.permissions.map((p) => p.permissionKey);
+    const permissions = user.role.permissions.map((p: any) => p.permissionKey);
 
     const sessionPayload = {
       id: user.id,

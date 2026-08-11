@@ -40,7 +40,7 @@ export async function GET() {
       take: 5,
     });
 
-    const topSellingItems = topItemsRaw.map((item) => ({
+    const topSellingItems = topItemsRaw.map((item: any) => ({
       name: item.name,
       totalQuantity: item._sum.quantity || 0,
     }));

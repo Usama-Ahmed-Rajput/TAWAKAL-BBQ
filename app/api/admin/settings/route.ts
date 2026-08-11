@@ -6,7 +6,7 @@ export async function GET() {
   try {
     const settings = await db.restaurantSetting.findMany();
     const settingsMap: Record<string, string> = {};
-    settings.forEach((s) => {
+    settings.forEach((s: any) => {
       settingsMap[s.key] = s.value;
     });
 
