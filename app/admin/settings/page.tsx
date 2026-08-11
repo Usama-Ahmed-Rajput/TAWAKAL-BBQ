@@ -421,7 +421,7 @@ export default function AdminSettingsPage() {
                 <span className="text-[#9F9589] block text-[10px] uppercase font-bold tracking-wider">
                   Email Address
                 </span>
-                <span className="text-amber-100 font-bold">{currentUser?.email || 'admin@tawakalbbq.com'}</span>
+                <span className="text-amber-100 font-bold">{currentUser?.email || '—'}</span>
               </div>
               <div className="p-3 bg-[#0d0907] rounded-xl border border-amber-900/30">
                 <span className="text-[#9F9589] block text-[10px] uppercase font-bold tracking-wider">

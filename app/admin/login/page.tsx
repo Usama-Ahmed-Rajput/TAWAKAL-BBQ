@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Shield, Lock, Mail, ArrowRight, Flame } from 'lucide-react';
+import { Lock, Mail, ArrowRight } from 'lucide-react';
 
 export default function AdminLoginPage() {
-  const [email, setEmail] = useState('admin@tawakalbbq.com');
-  const [password, setPassword] = useState('admin123456');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
@@ -26,13 +26,17 @@ export default function AdminLoginPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Login failed');
+        throw new Error(data.error || 'Invalid email or password.');
       }
 
       router.push('/admin/dashboard');
       router.refresh();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Invalid email or password.');
+      }
     } finally {
       setLoading(false);
     }
@@ -55,12 +59,12 @@ export default function AdminLoginPage() {
             TAWAKAL <span className="text-amber-500">BBQ</span>
           </h1>
           <p className="text-sm font-serif italic text-amber-200/60 mt-1">
-            Management System & Portal
+            Management Portal
           </p>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 rounded-xl bg-red-950/60 border border-red-800/60 text-red-200 text-sm">
+          <div className="mb-6 p-4 rounded-xl bg-red-950/60 border border-red-800/60 text-red-200 text-sm font-semibold">
             {error}
           </div>
         )}
@@ -77,8 +81,9 @@ export default function AdminLoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                placeholder="admin@tawakalbbq.com"
-                className="w-full bg-[#0d0907] border border-amber-900/50 rounded-xl py-3 pl-11 pr-4 text-amber-100 placeholder-amber-900 focus:outline-none focus:border-amber-500 transition-colors"
+                autoComplete="username"
+                placeholder="Enter admin email"
+                className="w-full bg-[#0d0907] border border-amber-900/50 rounded-xl py-3 pl-11 pr-4 text-amber-100 placeholder-amber-900 focus:outline-none focus:border-amber-500 transition-colors text-sm"
               />
             </div>
           </div>
@@ -94,8 +99,9 @@ export default function AdminLoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                autoComplete="current-password"
                 placeholder="••••••••"
-                className="w-full bg-[#0d0907] border border-amber-900/50 rounded-xl py-3 pl-11 pr-4 text-amber-100 placeholder-amber-900 focus:outline-none focus:border-amber-500 transition-colors"
+                className="w-full bg-[#0d0907] border border-amber-900/50 rounded-xl py-3 pl-11 pr-4 text-amber-100 placeholder-amber-900 focus:outline-none focus:border-amber-500 transition-colors text-sm"
               />
             </div>
           </div>
@@ -103,7 +109,7 @@ export default function AdminLoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full mt-4 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-amber-950 font-bold py-3.5 px-6 rounded-xl transition-all shadow-lg shadow-amber-900/30 flex items-center justify-center space-x-2 group disabled:opacity-50"
+            className="w-full mt-4 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-amber-950 font-bold py-3.5 px-6 rounded-xl transition-all shadow-lg shadow-amber-900/30 flex items-center justify-center space-x-2 group disabled:opacity-50 cursor-pointer"
           >
             <span>{loading ? 'Authenticating...' : 'Sign In to Portal'}</span>
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -112,7 +118,7 @@ export default function AdminLoginPage() {
 
         <div className="mt-8 pt-6 border-t border-amber-900/30 text-center">
           <p className="text-xs text-amber-400/50">
-            Protected Platform • Default Credentials Loaded from Seed
+            Protected Platform • Authorized Admin Access Only
           </p>
         </div>
       </div>

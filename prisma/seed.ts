@@ -73,13 +73,15 @@ async function main() {
   }
 
   // 3. Super Admin User
-  const passwordHash = await bcrypt.hash('admin123456', 10);
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@tawakalbbq.com';
+  const adminInitialPassword = process.env.ADMIN_INITIAL_PASSWORD || 'admin123456';
+  const passwordHash = await bcrypt.hash(adminInitialPassword, 10);
   await prisma.user.upsert({
-    where: { email: 'admin@tawakalbbq.com' },
+    where: { email: adminEmail },
     update: { passwordHash, roleId: superAdminRole.id },
     create: {
       name: 'Tawakal Super Admin',
-      email: 'admin@tawakalbbq.com',
+      email: adminEmail,
       passwordHash,
       roleId: superAdminRole.id,
     },
