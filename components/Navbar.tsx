@@ -4,6 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Flame, Menu as MenuIcon, X, ShoppingBag } from 'lucide-react';
 import { Button } from './ui/Button';
+import { useCart } from '@/context/CartContext';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 interface NavbarProps {
   onOrderClick?: () => void;
@@ -12,6 +15,8 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({ onOrderClick }) => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { totalItemsCount, openDrawer } = useCart();
+  const pathname = usePathname();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -23,12 +28,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onOrderClick }) => {
   }, []);
 
   const navLinks = [
-    { name: 'HOME', href: '#hero' },
-    { name: 'ABOUT', href: '#about' },
-    { name: 'EXPERIENCE', href: '#from-fire' },
-    { name: 'SIGNATURES', href: '#signatures' },
-    { name: 'MENU', href: '#menu' },
-    { name: 'LOCATION', href: '#location' },
+    { name: 'HOME', href: '/' },
+    { name: 'MENU', href: '/menu' },
+    { name: 'DEALS', href: '/deals' },
+    { name: 'LOCATION', href: '/location' },
+    { name: 'ABOUT', href: '/about' },
+    { name: 'CONTACT', href: '/contact' },
   ];
 
   return (
@@ -42,14 +47,16 @@ export const Navbar: React.FC<NavbarProps> = ({ onOrderClick }) => {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
           {/* Logo */}
-          <a
-            href="#hero"
-            className="flex items-center gap-2.5 group cursor-pointer"
+          <Link
+            href="/"
+            className="flex items-center gap-3 group cursor-pointer"
             id="nav-logo"
           >
-            <div className="w-10 h-10 rounded-full bg-[#1A1815] border border-[#C83B22]/40 flex items-center justify-center group-hover:border-[#C83B22] transition-colors duration-300 shadow-[0_0_15px_rgba(200,59,34,0.2)]">
-              <Flame className="w-5 h-5 text-[#C83B22] group-hover:scale-110 transition-transform duration-300" />
-            </div>
+            <img
+              src="/logo.png"
+              alt="Tawakal BBQ & Restaurant"
+              className="w-10 h-10 object-contain rounded-full border border-[#C83B22]/40 p-0.5 group-hover:border-[#C83B22] transition-all shadow-[0_0_15px_rgba(200,59,34,0.3)] bg-[#11100E]"
+            />
             <div className="flex flex-col">
               <span className="font-bebas text-2xl sm:text-3xl tracking-widest text-[#F4EBDD] group-hover:text-[#D96A2B] transition-colors leading-none">
                 TAWAKAL <span className="text-[#C83B22]">BBQ</span>
@@ -58,48 +65,86 @@ export const Navbar: React.FC<NavbarProps> = ({ onOrderClick }) => {
                 Authentic Fire Grilled
               </span>
             </div>
-          </a>
+          </Link>
 
           {/* Desktop Nav Links */}
-          <nav className="hidden md:flex items-center gap-7">
-            {navLinks.map((link) => (
-              <a
-                key={link.name}
-                href={link.href}
-                className="font-sans text-xs tracking-[0.18em] font-medium text-[#F4EBDD]/85 hover:text-[#C83B22] transition-colors duration-200 relative py-1 group"
-              >
-                {link.name}
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#C83B22] group-hover:w-full transition-all duration-300" />
-              </a>
-            ))}
+          <nav className="hidden md:flex items-center gap-6">
+            {navLinks.map((link) => {
+              const isActive = pathname === link.href;
+              return (
+                <Link
+                  key={link.name}
+                  href={link.href}
+                  className={`font-sans text-xs tracking-[0.18em] font-medium transition-colors duration-200 relative py-1 group ${
+                    isActive ? 'text-[#C83B22]' : 'text-[#F4EBDD]/85 hover:text-[#C83B22]'
+                  }`}
+                >
+                  {link.name}
+                  <span
+                    className={`absolute bottom-0 left-0 h-0.5 bg-[#C83B22] transition-all duration-300 ${
+                      isActive ? 'w-full' : 'w-0 group-hover:w-full'
+                    }`}
+                  />
+                </Link>
+              );
+            })}
           </nav>
 
-          {/* Desktop CTA */}
+          {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-4">
+            {/* Cart Button */}
+            <button
+              onClick={openDrawer}
+              className="relative py-2 px-3.5 rounded-lg border border-[#C69A45]/40 bg-[#1A1815] text-[#F4EBDD] hover:border-[#C69A45] hover:bg-[#24201C] transition-all flex items-center gap-2 font-bebas text-base tracking-wider"
+              aria-label="Open Shopping Cart"
+            >
+              <ShoppingBag className="w-4 h-4 text-[#C69A45]" />
+              <span>CART</span>
+              <span className="w-5 h-5 rounded-full bg-[#C83B22] text-white text-[11px] font-sans font-bold flex items-center justify-center">
+                {totalItemsCount}
+              </span>
+            </button>
+
             <Button
               id="nav-order-btn"
               size="sm"
-              onClick={onOrderClick}
+              onClick={onOrderClick ? onOrderClick : openDrawer}
               variant="primary"
             >
-              <ShoppingBag className="w-4 h-4 mr-1.5" />
               ORDER NOW
             </Button>
           </div>
 
-          {/* Mobile Hamburger Toggle */}
-          <button
-            id="mobile-menu-toggle"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 text-[#F4EBDD] hover:text-[#C83B22] focus:outline-none min-h-[44px] min-w-[44px] flex items-center justify-center"
-            aria-label="Toggle Navigation Menu"
-          >
-            {mobileMenuOpen ? (
-              <X className="w-7 h-7 text-[#C83B22]" />
-            ) : (
-              <MenuIcon className="w-7 h-7" />
-            )}
-          </button>
+          {/* Mobile Right Controls */}
+          <div className="flex items-center gap-3 md:hidden">
+            {/* Mobile Cart Button */}
+            <button
+              onClick={openDrawer}
+              className="p-2 rounded-lg bg-[#1A1815] border border-[#C69A45]/40 text-[#F4EBDD] relative"
+              aria-label="Open Shopping Cart"
+            >
+              <ShoppingBag className="w-5 h-5 text-[#C69A45]" />
+              {totalItemsCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#C83B22] text-white text-[9px] font-bold flex items-center justify-center">
+                  {totalItemsCount}
+                </span>
+              )}
+            </button>
+
+            {/* Mobile Hamburger Toggle */}
+            <button
+              id="mobile-menu-toggle"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 text-[#F4EBDD] hover:text-[#C83B22] focus:outline-none min-h-[44px] min-w-[44px] flex items-center justify-center"
+              aria-label="Toggle Navigation Menu"
+            >
+              {mobileMenuOpen ? (
+                <X className="w-7 h-7 text-[#C83B22]" />
+              ) : (
+                <MenuIcon className="w-7 h-7" />
+              )}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -113,9 +158,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onOrderClick }) => {
             transition={{ duration: 0.3 }}
             className="fixed inset-0 z-40 bg-[#11100E]/98 backdrop-blur-xl md:hidden pt-24 px-6 pb-10 flex flex-col justify-between border-b border-[#C83B22]/30"
           >
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-4">
               {navLinks.map((link) => (
-                <a
+                <Link
                   key={link.name}
                   href={link.href}
                   onClick={() => setMobileMenuOpen(false)}
@@ -123,7 +168,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOrderClick }) => {
                 >
                   <span>{link.name}</span>
                   <span className="text-[#C83B22] text-xl">→</span>
-                </a>
+                </Link>
               ))}
             </div>
 
@@ -133,12 +178,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onOrderClick }) => {
                 size="lg"
                 onClick={() => {
                   setMobileMenuOpen(false);
-                  onOrderClick?.();
+                  openDrawer();
                 }}
                 className="w-full"
               >
                 <ShoppingBag className="w-5 h-5 mr-2" />
-                ORDER NOW
+                ORDER NOW ({totalItemsCount})
               </Button>
 
               <div className="font-sans text-center text-xs text-[#B8B0A5] tracking-wider uppercase pt-2 font-medium">

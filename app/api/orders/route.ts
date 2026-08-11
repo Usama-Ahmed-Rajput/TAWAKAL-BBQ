@@ -1,255 +1,181 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { prisma } from '@/lib/db';
 
-function generateOrderNumber(): string {
-  const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-  return `TB-${dateStr}-${randomSuffix}`;
+export async function GET(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const status = searchParams.get('status');
+    const branchId = searchParams.get('branchId');
+    const search = searchParams.get('search');
+
+    const where: any = {};
+    if (status && status !== 'ALL') {
+      where.orderStatus = status;
+    }
+    if (branchId) {
+      where.branchId = branchId;
+    }
+    if (search) {
+      where.OR = [
+        { orderNumber: { contains: search } },
+        { customerPhone: { contains: search } },
+        { customerName: { contains: search } },
+      ];
+    }
+
+    const orders = await prisma.order.findMany({
+      where,
+      include: {
+        orderItems: true,
+        branch: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return NextResponse.json({ orders });
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 });
+  }
 }
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
-    const body = await request.json();
-
+    const body = await req.json();
     const {
+      branchId,
       customerName,
       customerPhone,
-      customerEmail,
+      whatsapp,
       deliveryAddress,
       deliveryArea,
       deliveryNotes,
       orderType = 'DELIVERY',
-      paymentMethod = 'CASH_ON_DELIVERY',
+      items = [],
+      deliveryFee: clientDeliveryFee,
+      discountAmount = 0,
       couponCode,
-      items,
     } = body;
 
-    if (!customerName || !customerPhone || !items || !Array.isArray(items) || items.length === 0) {
-      return NextResponse.json(
-        { error: 'Customer Name, Phone and cart items are required' },
-        { status: 400 }
-      );
+    if (!customerName || !customerPhone || items.length === 0) {
+      return NextResponse.json({ error: 'Customer details and cart items are required' }, { status: 400 });
     }
 
-    if (orderType === 'DELIVERY' && !deliveryAddress) {
-      return NextResponse.json({ error: 'Delivery address is required' }, { status: 400 });
-    }
-
-    // 1. Calculate subtotal & validate items server-side
+    // 1. Fetch DB items & deals to calculate real authoritative subtotal
     let calculatedSubtotal = 0;
-    const validatedOrderItems: any[] = [];
+    const validatedOrderItems: {
+      productId?: string;
+      dealId?: string;
+      name: string;
+      price: number;
+      quantity: number;
+      notes?: string;
+    }[] = [];
 
     for (const cartItem of items) {
-      if (cartItem.dealId) {
-        // Deal item
-        const deal = await db.deal.findUnique({
+      if (cartItem.type === 'DEAL' && cartItem.dealId) {
+        const dbDeal = await prisma.deal.findUnique({
           where: { id: cartItem.dealId },
         });
 
-        if (!deal || !deal.isActive) {
-          return NextResponse.json(
-            { error: `Deal "${cartItem.name || 'Selected deal'}" is no longer available` },
-            { status: 400 }
-          );
+        if (dbDeal) {
+          const itemPrice = dbDeal.dealPrice;
+          calculatedSubtotal += itemPrice * cartItem.quantity;
+          validatedOrderItems.push({
+            dealId: dbDeal.id,
+            name: `${dbDeal.dealNumber ? dbDeal.dealNumber + ' — ' : ''}${dbDeal.title}`,
+            price: itemPrice,
+            quantity: cartItem.quantity,
+            notes: 'Includes compulsory Raita',
+          });
         }
-
-        const itemTotal = deal.dealPrice * cartItem.quantity;
-        calculatedSubtotal += itemTotal;
-
-        validatedOrderItems.push({
-          dealId: deal.id,
-          name: deal.title,
-          price: deal.dealPrice,
-          quantity: cartItem.quantity,
-          variantName: null,
-          notes: cartItem.notes || null,
-        });
-      } else if (cartItem.menuItemId) {
-        // Menu item
-        const menuItem = await db.menuItem.findUnique({
-          where: { id: cartItem.menuItemId },
-          include: { variants: true },
+      } else if (cartItem.productId) {
+        const dbProduct = await prisma.menuItem.findUnique({
+          where: { id: cartItem.productId },
         });
 
-        if (!menuItem || !menuItem.isActive || !menuItem.isAvailable) {
-          return NextResponse.json(
-            { error: `Item "${cartItem.name || 'Selected dish'}" is currently unavailable` },
-            { status: 400 }
-          );
-        }
-
-        let unitPrice = menuItem.price;
-        let variantName = null;
-
-        if (cartItem.variantId) {
-          const variant = menuItem.variants.find((v: any) => v.id === cartItem.variantId);
-          if (variant) {
-            unitPrice = variant.price;
-            variantName = variant.name;
-          }
-        }
-
-        const itemTotal = unitPrice * cartItem.quantity;
-        calculatedSubtotal += itemTotal;
-
-        validatedOrderItems.push({
-          menuItemId: menuItem.id,
-          name: menuItem.name,
-          price: unitPrice,
-          quantity: cartItem.quantity,
-          variantName,
-          notes: cartItem.notes || null,
-        });
-      }
-    }
-
-    // 2. Validate Coupon Server-Side
-    let discountAmount = 0;
-    if (couponCode) {
-      const coupon = await db.coupon.findUnique({
-        where: { code: couponCode.trim().toUpperCase() },
-      });
-
-      if (coupon && coupon.isActive) {
-        if (!coupon.minOrder || calculatedSubtotal >= coupon.minOrder) {
-          if (coupon.discountType === 'PERCENTAGE') {
-            discountAmount = (calculatedSubtotal * coupon.discountValue) / 100;
-            if (coupon.maxDiscount && discountAmount > coupon.maxDiscount) {
-              discountAmount = coupon.maxDiscount;
-            }
-          } else {
-            discountAmount = coupon.discountValue;
-          }
-          discountAmount = Math.min(discountAmount, calculatedSubtotal);
-
-          // Update coupon usage
-          await db.coupon.update({
-            where: { id: coupon.id },
-            data: { usedCount: { increment: 1 } },
+        if (dbProduct) {
+          const itemPrice = dbProduct.price;
+          calculatedSubtotal += itemPrice * cartItem.quantity;
+          validatedOrderItems.push({
+            productId: dbProduct.id,
+            name: dbProduct.name,
+            price: itemPrice,
+            quantity: cartItem.quantity,
           });
         }
       }
     }
 
-    // 3. Delivery Fee Server-Side Calculation
-    const deliveryFeeSetting = await db.restaurantSetting.findUnique({
-      where: { key: 'delivery_fee' },
-    });
-    const deliveryFee = orderType === 'DELIVERY' ? Number(deliveryFeeSetting?.value || 150) : 0;
+    if (validatedOrderItems.length === 0) {
+      return NextResponse.json({ error: 'No valid products or deals in order' }, { status: 400 });
+    }
 
-    const totalAmount = Math.max(0, calculatedSubtotal - discountAmount + deliveryFee);
-    const orderNumber = generateOrderNumber();
+    // 2. Delivery fee calculation
+    const finalDeliveryFee = orderType === 'DELIVERY' ? (typeof clientDeliveryFee === 'number' ? clientDeliveryFee : 150) : 0;
+    const totalAmount = Math.max(0, calculatedSubtotal - discountAmount + finalDeliveryFee);
 
-    // 4. Upsert Customer Record
-    let customer = await db.customer.findUnique({
-      where: { phone: customerPhone.trim() },
+    // 3. Generate unique order number (e.g. TWK-84920)
+    const randomSuffix = Math.floor(10000 + Math.random() * 90000);
+    const orderNumber = `TWK-${randomSuffix}`;
+
+    // 4. Find or create Customer
+    let customer = await prisma.customer.findUnique({
+      where: { phone: customerPhone },
     });
 
     if (!customer) {
-      customer = await db.customer.create({
+      customer = await prisma.customer.create({
         data: {
-          name: customerName.trim(),
-          phone: customerPhone.trim(),
-          email: customerEmail ? customerEmail.trim() : null,
+          name: customerName,
+          phone: customerPhone,
         },
       });
     }
 
-    // 5. Persist Order in Database
-    const newOrder = await db.order.create({
+    // 5. Create Order with snapshot values
+    const newOrder = await prisma.order.create({
       data: {
         orderNumber,
+        branchId: branchId || undefined,
         customerId: customer.id,
-        customerName: customerName.trim(),
-        customerPhone: customerPhone.trim(),
-        customerEmail: customerEmail ? customerEmail.trim() : null,
-        deliveryAddress: deliveryAddress ? deliveryAddress.trim() : null,
-        deliveryArea: deliveryArea ? deliveryArea.trim() : null,
-        deliveryNotes: deliveryNotes ? deliveryNotes.trim() : null,
+        customerName,
+        customerPhone,
+        deliveryAddress: deliveryAddress || 'Pickup at restaurant',
+        deliveryArea: deliveryArea || '',
+        deliveryNotes: deliveryNotes || '',
         orderType,
         orderStatus: 'PENDING',
-        paymentMethod,
+        paymentMethod: 'CASH_ON_DELIVERY',
         paymentStatus: 'PENDING',
         subtotal: calculatedSubtotal,
         discountAmount,
-        deliveryFee,
+        couponCode: couponCode || null,
+        deliveryFee: finalDeliveryFee,
         totalAmount,
-        couponCode: couponCode ? couponCode.trim().toUpperCase() : null,
         orderItems: {
-          create: validatedOrderItems,
-        },
-        payments: {
-          create: {
-            paymentMethod,
-            paymentStatus: 'PENDING',
-            amount: totalAmount,
-          },
+          create: validatedOrderItems.map((item) => ({
+            menuItemId: item.productId,
+            dealId: item.dealId,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            notes: item.notes,
+          })),
         },
       },
       include: {
         orderItems: true,
-      },
-    });
-
-    // 6. Create Admin Notification
-    await db.notification.create({
-      data: {
-        title: 'New Order Received',
-        message: `Order #${newOrder.orderNumber} for Rs. ${newOrder.totalAmount} received from ${newOrder.customerName}`,
-        type: 'ORDER',
+        branch: true,
       },
     });
 
     return NextResponse.json({
       success: true,
-      order: {
-        orderNumber: newOrder.orderNumber,
-        subtotal: newOrder.subtotal,
-        discountAmount: newOrder.discountAmount,
-        deliveryFee: newOrder.deliveryFee,
-        totalAmount: newOrder.totalAmount,
-        status: newOrder.orderStatus,
-        createdAt: newOrder.createdAt,
-      },
+      orderNumber: newOrder.orderNumber,
+      order: newOrder,
     });
-  } catch (error: any) {
-    console.error('Order creation error:', error);
-    return NextResponse.json({ error: error.message || 'Failed to place order' }, { status: 500 });
-  }
-}
-
-export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status');
-    const search = searchParams.get('search');
-
-    const whereClause: any = {};
-    if (status && status !== 'ALL') {
-      whereClause.orderStatus = status;
-    }
-
-    if (search) {
-      whereClause.OR = [
-        { orderNumber: { contains: search } },
-        { customerName: { contains: search } },
-        { customerPhone: { contains: search } },
-      ];
-    }
-
-    const orders = await db.order.findMany({
-      where: whereClause,
-      include: {
-        orderItems: true,
-        payments: true,
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 100,
-    });
-
-    return NextResponse.json({ orders });
-  } catch (error: any) {
-    console.error('Fetch orders error:', error);
-    return NextResponse.json({ error: error.message || 'Failed to fetch orders' }, { status: 500 });
+  } catch (error) {
+    console.error('Failed to create order:', error);
+    return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });
   }
 }

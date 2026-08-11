@@ -1,10 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Flame, Sparkles } from 'lucide-react';
+import { Flame, Sparkles, Plus, Minus, Check } from 'lucide-react';
 import { DishItem } from '@/data/dishes';
-import { Button } from './Button';
+import { useCart } from '@/context/CartContext';
+import Link from 'next/link';
 
 interface DishCardProps {
   dish: DishItem;
@@ -12,6 +13,26 @@ interface DishCardProps {
 }
 
 export const DishCard: React.FC<DishCardProps> = ({ dish, onOrder }) => {
+  const { addItem, getItemQuantity, updateQuantity } = useCart();
+  const [isAdded, setIsAdded] = useState(false);
+
+  // Extract price number from string e.g. "Rs. 350" -> 350
+  const numericPrice = parseInt(dish.price.replace(/[^0-9]/g, ''), 10) || 350;
+  const slug = dish.id || dish.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  const qtyInCart = getItemQuantity(slug, 'ITEM');
+
+  const handleAddToCart = () => {
+    addItem({
+      id: slug,
+      name: dish.name,
+      price: numericPrice,
+      image: dish.image,
+      description: dish.description,
+    });
+    setIsAdded(true);
+    setTimeout(() => setIsAdded(false), 1500);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
@@ -26,12 +47,12 @@ export const DishCard: React.FC<DishCardProps> = ({ dish, onOrder }) => {
 
       <div>
         {/* Dish Image Header Container */}
-        <div className="relative w-full overflow-hidden bg-[#11100E] border-b border-[var(--color-border)]">
+        <Link href={`/menu/${slug}`} className="relative block w-full overflow-hidden bg-[#11100E] border-b border-[var(--color-border)]">
           <img
             src={dish.image}
             alt={dish.name}
             loading="lazy"
-            className="food-card-image filter brightness-95 contrast-105"
+            className="food-card-image filter brightness-95 contrast-105 group-hover:scale-105 transition-transform duration-500"
           />
 
           {/* Dark Overlay Gradient */}
@@ -59,16 +80,18 @@ export const DishCard: React.FC<DishCardProps> = ({ dish, onOrder }) => {
               </span>
             </div>
           </div>
-        </div>
+        </Link>
 
         {/* Content Details */}
         <div className="p-6">
           {/* Dish Titles */}
           <div className="mb-3">
             <div className="flex items-baseline justify-between gap-2">
-              <h3 className="font-serif text-2xl sm:text-3xl font-normal text-[var(--color-text)] group-hover:text-[var(--color-orange)] transition-colors leading-tight">
-                {dish.name}
-              </h3>
+              <Link href={`/menu/${slug}`}>
+                <h3 className="font-serif text-2xl sm:text-3xl font-normal text-[var(--color-text)] group-hover:text-[var(--color-orange)] transition-colors leading-tight">
+                  {dish.name}
+                </h3>
+              </Link>
               {dish.urduName && (
                 <span className="font-urdu text-base text-[var(--color-text-secondary)] shrink-0">
                   {dish.urduName}
@@ -81,13 +104,13 @@ export const DishCard: React.FC<DishCardProps> = ({ dish, onOrder }) => {
           </div>
 
           {/* Description */}
-          <p className="font-sans text-xs sm:text-sm text-[var(--color-text-muted)] font-normal leading-relaxed group-hover:text-[var(--color-text-secondary)] transition-colors">
+          <p className="font-sans text-xs sm:text-sm text-[var(--color-text-muted)] font-normal leading-relaxed group-hover:text-[var(--color-text-secondary)] transition-colors line-clamp-2">
             {dish.description}
           </p>
         </div>
       </div>
 
-      {/* Footer / Price & Order */}
+      {/* Footer / Price & Add to Cart */}
       <div className="p-6 pt-4 border-t border-[var(--color-border)] flex items-center justify-between mt-auto bg-[#1A1714]">
         <div className="flex flex-col">
           <span className="font-sans text-[9px] uppercase tracking-widest text-[var(--color-text-muted)] font-semibold">
@@ -98,14 +121,46 @@ export const DishCard: React.FC<DishCardProps> = ({ dish, onOrder }) => {
           </span>
         </div>
 
-        <Button
-          size="sm"
-          variant="primary"
-          onClick={() => onOrder?.(dish.name)}
-          className="text-xs px-5 py-2 font-bold"
-        >
-          ORDER NOW
-        </Button>
+        {qtyInCart > 0 ? (
+          <div className="flex items-center border border-[var(--color-gold)]/40 rounded-xl bg-[#11100E] overflow-hidden">
+            <button
+              onClick={() => updateQuantity(`item-${slug}`, -1)}
+              className="p-2 text-[#9F9589] hover:text-white hover:bg-[#24201C] transition-colors"
+            >
+              <Minus className="w-3.5 h-3.5" />
+            </button>
+            <span className="px-3 font-sans text-xs font-bold text-[#F4EBDD]">
+              {qtyInCart}
+            </span>
+            <button
+              onClick={() => updateQuantity(`item-${slug}`, 1)}
+              className="p-2 text-[#9F9589] hover:text-white hover:bg-[#24201C] transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={handleAddToCart}
+            className={`px-4 py-2.5 rounded-xl font-sans text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-md active:scale-95 ${
+              isAdded
+                ? 'bg-[#4CAF50] text-white'
+                : 'bg-[#C83B22] hover:bg-[#D94A2D] text-white'
+            }`}
+          >
+            {isAdded ? (
+              <>
+                <Check className="w-3.5 h-3.5" />
+                <span>ADDED</span>
+              </>
+            ) : (
+              <>
+                <Plus className="w-3.5 h-3.5" />
+                <span>ADD TO CART</span>
+              </>
+            )}
+          </button>
+        )}
       </div>
     </motion.div>
   );

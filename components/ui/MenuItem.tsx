@@ -1,17 +1,37 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Flame, Sparkles } from 'lucide-react';
+import { Flame, Sparkles, Plus, Check } from 'lucide-react';
 import { MenuItemType } from '@/data/menu';
-import { Button } from './Button';
+import { useCart } from '@/context/CartContext';
 
 interface MenuItemProps {
   item: MenuItemType;
   onOrder?: (itemName: string) => void;
 }
 
-export const MenuItem: React.FC<MenuItemProps> = ({ item, onOrder }) => {
+export const MenuItem: React.FC<MenuItemProps> = ({ item }) => {
+  const { addItem } = useCart();
+  const [added, setAdded] = useState(false);
+
+  const handleAddToCart = () => {
+    const numericPrice = typeof item.rawPrice === 'number'
+      ? item.rawPrice
+      : parseFloat(String(item.price).replace(/[^0-9.]/g, '')) || 350;
+
+    addItem({
+      id: String(item.id),
+      name: item.name,
+      price: numericPrice,
+      image: item.image,
+      description: item.description,
+    });
+
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1500);
+  };
+
   return (
     <motion.div
       layout
@@ -108,14 +128,26 @@ export const MenuItem: React.FC<MenuItemProps> = ({ item, onOrder }) => {
         <span className="font-sans text-xl sm:text-2xl font-bold text-[var(--color-text)] group-hover:text-[var(--color-orange)] transition-colors">
           {item.price}
         </span>
-        <Button
-          size="sm"
-          variant="primary"
-          onClick={() => onOrder?.(item.name)}
-          className="text-xs py-1.5 px-4"
+        <button
+          onClick={handleAddToCart}
+          className={`px-4 py-2 rounded-xl font-sans text-xs uppercase font-bold tracking-wider flex items-center gap-1.5 transition-all shadow-md active:scale-95 ${
+            added
+              ? 'bg-[#4CAF50] text-white'
+              : 'bg-[#C83B22] hover:bg-[#D94A2D] text-white'
+          }`}
         >
-          ORDER NOW
-        </Button>
+          {added ? (
+            <>
+              <Check className="w-3.5 h-3.5" />
+              <span>ADDED</span>
+            </>
+          ) : (
+            <>
+              <Plus className="w-3.5 h-3.5" />
+              <span>ADD TO CART</span>
+            </>
+          )}
+        </button>
       </div>
     </motion.div>
   );

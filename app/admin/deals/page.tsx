@@ -1,13 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Tag, Edit3, Trash2, X, Flame, Check } from 'lucide-react';
+import { Plus, Tag, Edit3, Trash2, X, Flame, Check, AlertTriangle } from 'lucide-react';
 
 export default function AdminDealsPage() {
   const [deals, setDeals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDeal, setEditingDeal] = useState<any>(null);
+  const [deletingDeal, setDeletingDeal] = useState<any>(null);
+  const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -23,6 +25,11 @@ export default function AdminDealsPage() {
     isHomepageFeatured: true,
     terms: '',
   });
+
+  const showNotification = (type: 'success' | 'error', message: string) => {
+    setNotification({ type, message });
+    setTimeout(() => setNotification(null), 4000);
+  };
 
   const fetchDeals = () => {
     setLoading(true);
@@ -93,10 +100,11 @@ export default function AdminDealsPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to save deal');
 
+      showNotification('success', editingDeal ? 'Deal updated successfully.' : 'Deal created successfully.');
       setIsModalOpen(false);
       fetchDeals();
     } catch (err: any) {
-      alert(err.message);
+      showNotification('error', err.message);
     }
   };
 
@@ -107,14 +115,42 @@ export default function AdminDealsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive: !deal.isActive }),
       });
+      showNotification('success', `${deal.title} status updated.`);
       fetchDeals();
     } catch (err: any) {
       console.error(err);
     }
   };
 
+  const handleDeleteConfirm = async () => {
+    if (!deletingDeal) return;
+    try {
+      const res = await fetch(`/api/deals/${deletingDeal.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to deactivate deal');
+      showNotification('success', 'Deal deactivated successfully.');
+      setDeletingDeal(null);
+      fetchDeals();
+    } catch (err: any) {
+      showNotification('error', err.message);
+    }
+  };
+
   return (
     <div className="space-y-8 text-amber-50">
+      {/* Toast Notification */}
+      {notification && (
+        <div
+          className={`fixed top-5 right-5 z-50 px-5 py-3 rounded-xl border font-sans text-xs font-bold shadow-2xl flex items-center gap-2 ${
+            notification.type === 'success'
+              ? 'bg-emerald-950/90 text-emerald-300 border-emerald-700'
+              : 'bg-red-950/90 text-red-300 border-red-700'
+          }`}
+        >
+          <span>{notification.message}</span>
+        </div>
+      )}
+
+      {/* Header Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#18110e] p-6 rounded-2xl border border-amber-900/40 shadow-xl">
         <div>
           <h2 className="font-bebas text-3xl tracking-wider text-amber-100">
@@ -126,7 +162,7 @@ export default function AdminDealsPage() {
         </div>
         <button
           onClick={() => handleOpenModal()}
-          className="bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-amber-950 px-5 py-3 rounded-xl font-bold text-sm flex items-center space-x-2 shadow-lg shadow-amber-950/50 transition-all self-start md:self-auto"
+          className="bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-amber-950 px-5 py-3 rounded-xl font-bold text-sm flex items-center space-x-2 shadow-lg shadow-amber-950/50 transition-all self-start md:self-auto cursor-pointer"
         >
           <Plus className="w-5 h-5" />
           <span>Create New Deal</span>
@@ -168,7 +204,7 @@ export default function AdminDealsPage() {
                       </span>
                       <button
                         onClick={() => handleToggleActive(deal)}
-                        className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded border ${
+                        className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded border cursor-pointer ${
                           deal.isActive
                             ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800'
                             : 'bg-red-950/80 text-red-300 border-red-800'
@@ -182,15 +218,17 @@ export default function AdminDealsPage() {
                       {deal.title}
                     </h3>
                     <p className="text-xs text-amber-200/60 font-serif italic mt-1 line-clamp-2">
-                      {deal.description || deal.shortDescription}
+                      {deal.description || deal.shortDescription || deal.itemsSummary}
                     </p>
                   </div>
 
                   <div className="mt-4 pt-3 border-t border-amber-900/30 flex items-center justify-between">
                     <div>
-                      <span className="text-xs text-amber-400/50 line-through mr-2">
-                        Rs. {deal.originalPrice}
-                      </span>
+                      {deal.originalPrice > 0 && (
+                        <span className="text-xs text-amber-400/50 line-through mr-2">
+                          Rs. {deal.originalPrice}
+                        </span>
+                      )}
                       <span className="font-bebas text-2xl text-amber-400">
                         Rs. {deal.dealPrice}
                       </span>
@@ -198,9 +236,15 @@ export default function AdminDealsPage() {
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => handleOpenModal(deal)}
-                        className="p-2 rounded-lg bg-amber-950/60 border border-amber-800/40 text-amber-300 hover:bg-amber-800/40"
+                        className="p-2 rounded-lg bg-amber-950/60 border border-amber-800/40 text-amber-300 hover:bg-amber-800/40 cursor-pointer"
                       >
                         <Edit3 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setDeletingDeal(deal)}
+                        className="p-2 rounded-lg bg-red-950/60 border border-red-800/40 text-red-300 hover:bg-red-900/40 cursor-pointer"
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
@@ -211,7 +255,7 @@ export default function AdminDealsPage() {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Add / Edit Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[#18110e] border border-amber-900/50 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 shadow-2xl space-y-6">
@@ -221,7 +265,7 @@ export default function AdminDealsPage() {
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-amber-400 hover:text-amber-200"
+                className="text-amber-400 hover:text-amber-200 cursor-pointer"
               >
                 <X className="w-6 h-6" />
               </button>
@@ -238,7 +282,7 @@ export default function AdminDealsPage() {
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   className="w-full bg-[#0d0907] border border-amber-900/50 rounded-xl p-2.5 text-xs text-amber-100"
-                  placeholder="e.g. Family Charcoal Feast Combo"
+                  placeholder="e.g. DEAL 01"
                 />
               </div>
 
@@ -252,7 +296,7 @@ export default function AdminDealsPage() {
                     value={formData.originalPrice}
                     onChange={(e) => setFormData({ ...formData, originalPrice: e.target.value })}
                     className="w-full bg-[#0d0907] border border-amber-900/50 rounded-xl p-2.5 text-xs text-amber-100"
-                    placeholder="3500"
+                    placeholder="650"
                   />
                 </div>
                 <div>
@@ -265,7 +309,7 @@ export default function AdminDealsPage() {
                     value={formData.dealPrice}
                     onChange={(e) => setFormData({ ...formData, dealPrice: e.target.value })}
                     className="w-full bg-[#0d0907] border border-amber-900/50 rounded-xl p-2.5 text-xs text-amber-100"
-                    placeholder="2799"
+                    placeholder="500"
                   />
                 </div>
                 <div>
@@ -277,7 +321,7 @@ export default function AdminDealsPage() {
                     value={formData.discountValue}
                     onChange={(e) => setFormData({ ...formData, discountValue: e.target.value })}
                     className="w-full bg-[#0d0907] border border-amber-900/50 rounded-xl p-2.5 text-xs text-amber-100"
-                    placeholder="701"
+                    placeholder="150"
                   />
                 </div>
               </div>
@@ -298,14 +342,14 @@ export default function AdminDealsPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-amber-300/80 mb-1">
-                  Description
+                  Items Included / Description
                 </label>
                 <textarea
                   rows={3}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="w-full bg-[#0d0907] border border-amber-900/50 rounded-xl p-2.5 text-xs text-amber-100"
-                  placeholder="Includes 1 Chicken Tikka, 4 Seekh Kebabs, 4 Puri Parathas & Cold Drinks..."
+                  placeholder="1 Chicken Tikka Leg + 1 Cold Drink 300 ML + 1 Puri Paratha + 2 Chapati (With Compulsory Raita)"
                 />
               </div>
 
@@ -315,7 +359,7 @@ export default function AdminDealsPage() {
                     type="checkbox"
                     checked={formData.isActive}
                     onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                    className="rounded border-amber-900 text-amber-600 focus:ring-amber-500"
+                    className="rounded border-amber-900 text-amber-600 focus:ring-amber-500 cursor-pointer"
                   />
                   <span>Is Deal Active</span>
                 </label>
@@ -324,7 +368,7 @@ export default function AdminDealsPage() {
                     type="checkbox"
                     checked={formData.isHomepageFeatured}
                     onChange={(e) => setFormData({ ...formData, isHomepageFeatured: e.target.checked })}
-                    className="rounded border-amber-900 text-amber-600 focus:ring-amber-500"
+                    className="rounded border-amber-900 text-amber-600 focus:ring-amber-500 cursor-pointer"
                   />
                   <span>Show on Homepage Banner</span>
                 </label>
@@ -334,18 +378,53 @@ export default function AdminDealsPage() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl border border-amber-900/40 text-xs font-semibold text-amber-300/80"
+                  className="px-4 py-2.5 rounded-xl border border-amber-900/40 text-xs font-semibold text-amber-300/80 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-amber-950 font-bold px-6 py-2.5 rounded-xl text-xs shadow-lg shadow-amber-950/40"
+                  className="bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-amber-950 font-bold px-6 py-2.5 rounded-xl text-xs shadow-lg shadow-amber-950/40 cursor-pointer"
                 >
                   Save Deal
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingDeal && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#18110e] border border-red-900/60 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-5">
+            <div className="flex items-center space-x-3 text-red-500 pb-3 border-b border-amber-900/30">
+              <AlertTriangle className="w-6 h-6 shrink-0" />
+              <h3 className="font-bebas text-2xl tracking-wider text-amber-100">
+                DEACTIVATE DEAL
+              </h3>
+            </div>
+
+            <p className="text-xs text-amber-200/90 leading-relaxed">
+              Are you sure you want to deactivate deal <strong className="text-amber-100">{deletingDeal.title}</strong>?
+            </p>
+
+            <div className="flex items-center justify-end space-x-3 pt-3 border-t border-amber-900/30">
+              <button
+                type="button"
+                onClick={() => setDeletingDeal(null)}
+                className="px-4 py-2.5 rounded-xl border border-amber-900/40 text-xs font-semibold text-amber-300/80 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteConfirm}
+                className="bg-red-600 hover:bg-red-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow-lg shadow-red-950/50 cursor-pointer"
+              >
+                Deactivate Deal
+              </button>
+            </div>
           </div>
         </div>
       )}

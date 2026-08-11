@@ -129,7 +129,7 @@ export const SpiceCustomizer: React.FC = () => {
                 </span>
               </div>
               <h3 className="font-food text-2xl sm:text-3xl font-normal text-[#F4EBDD]">
-                "{currentOption.tagline}"
+                &quot;{currentOption.tagline}&quot;
               </h3>
             </div>
 

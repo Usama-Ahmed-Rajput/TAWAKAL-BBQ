@@ -4,7 +4,8 @@ export interface MenuItemType {
   urduName?: string;
   description: string;
   price: string;
-  category: 'bbq' | 'platters' | 'starters' | 'breads' | 'sides' | 'drinks' | 'desserts';
+  rawPrice?: number;
+  category: string;
   spicyLevel?: 1 | 2 | 3;
   isPopular?: boolean;
   isChefSpecial?: boolean;

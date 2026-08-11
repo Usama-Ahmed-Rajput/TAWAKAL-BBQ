@@ -56,7 +56,7 @@ export default function HomePage() {
         <SignaturePlatter />
 
         {/* 7. Interactive Restaurant Menu */}
-        <Menu onOrderDish={(item) => handleOpenOrder(item)} />
+        <Menu />
 
         {/* 8. Restaurant Interior Atmosphere Video */}
         <RestaurantInterior />

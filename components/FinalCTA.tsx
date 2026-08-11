@@ -27,15 +27,19 @@ export const FinalCTA: React.FC<FinalCTAProps> = ({
       <div className="absolute inset-0 film-grain pointer-events-none" />
 
       <div className="relative z-20 max-w-4xl mx-auto text-center flex flex-col items-center">
-        {/* Animated Icon */}
+        {/* Official Logo */}
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="w-16 h-16 rounded-full bg-[#1A1815] border border-[#C83B22]/60 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(200,59,34,0.4)]"
+          className="mb-6"
         >
-          <Flame className="w-8 h-8 text-[#C83B22] animate-pulse" />
+          <img
+            src="/logo.png"
+            alt="Tawakal BBQ Official Logo"
+            className="w-24 h-24 sm:w-28 sm:h-28 object-contain rounded-full border-2 border-[#C83B22]/60 bg-[#11100E] p-1.5 shadow-[0_0_35px_rgba(200,59,34,0.5)]"
+          />
         </motion.div>
 
         {/* Heading */}

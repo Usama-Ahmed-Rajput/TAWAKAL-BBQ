@@ -1,5 +1,5 @@
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 generator client {
@@ -106,30 +106,33 @@ model MenuAddon {
 }
 
 model Deal {
-  id                 String      @id @default(uuid())
-  title              String
-  slug               String      @unique
-  shortDescription   String?
-  description        String?
-  image              String
-  gallery            String?     // JSON array string
-  originalPrice      Float
-  dealPrice          Float
-  discountType       String      @default("FIXED") // FIXED | PERCENTAGE
-  discountValue      Float       @default(0)
-  startDate          DateTime?
-  endDate            DateTime?
-  startTime          String?
-  endTime            String?
-  isActive           Boolean     @default(true)
-  isFeatured         Boolean     @default(false)
-  isHomepageFeatured Boolean     @default(false)
-  sortOrder          Int         @default(0)
-  terms              String?
-  createdAt          DateTime    @default(now())
-  updatedAt          DateTime    @updatedAt
-  dealItems          DealItem[]
-  orderItems         OrderItem[]
+  id                   String      @id @default(uuid())
+  dealNumber           String?
+  title                String
+  slug                 String      @unique
+  shortDescription     String?
+  description          String?
+  itemsSummary         String?
+  image                String
+  gallery              String?     // JSON array string
+  originalPrice        Float
+  dealPrice            Float
+  discountType         String      @default("FIXED") // FIXED | PERCENTAGE
+  discountValue        Float       @default(0)
+  startDate            DateTime?
+  endDate              DateTime?
+  startTime            String?
+  endTime              String?
+  isActive             Boolean     @default(true)
+  isFeatured           Boolean     @default(false)
+  isHomepageFeatured   Boolean     @default(false)
+  verificationRequired Boolean     @default(false)
+  sortOrder            Int         @default(0)
+  terms                String?
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+  dealItems            DealItem[]
+  orderItems           OrderItem[]
 
   @@index([isActive])
 }
@@ -160,6 +163,8 @@ model Customer {
 model Order {
   id              String      @id @default(uuid())
   orderNumber     String      @unique
+  branchId        String?
+  branch          Branch?     @relation(fields: [branchId], references: [id])
   customerId      String?
   customer        Customer?   @relation(fields: [customerId], references: [id])
   customerName    String
@@ -411,6 +416,23 @@ model BusinessHour {
   closeTime String  @default("00:00")
 }
 
+model Branch {
+  id                String         @id @default(uuid())
+  slug              String         @unique
+  name              String
+  address           String
+  locationReference String?
+  phone             String
+  whatsapp          String?
+  mapUrl            String?
+  isActive          Boolean        @default(true)
+  openingHours      String         @default("12:00 PM - 01:00 AM")
+  deliveryAreas     DeliveryArea[]
+  orders            Order[]
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+}
+
 model SeoSetting {
   id              String  @id @default(uuid())
   pageKey         String  @unique // home, menu, deals, contact, etc.
@@ -418,4 +440,18 @@ model SeoSetting {
   metaDescription String
   ogImage         String?
   keywords        String?
+}
+
+model DeliveryArea {
+  id            String   @id @default(uuid())
+  branchId      String?
+  branch        Branch?  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  name          String   @unique
+  deliveryFee   Float    @default(150)
+  minOrder      Float    @default(300)
+  estimatedTime String   @default("30-45 mins")
+  isActive      Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }

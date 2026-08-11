@@ -12,13 +12,17 @@ import {
   LogOut,
   Flame,
   ChevronRight,
+  MapPin,
+  Store,
 } from 'lucide-react';
 
 const navItems = [
   { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
   { label: 'Orders', href: '/admin/orders', icon: ShoppingBag },
+  { label: 'Branches', href: '/admin/branches', icon: Store },
   { label: 'Menu CMS', href: '/admin/menu', icon: UtensilsCrossed },
   { label: 'Deals CMS', href: '/admin/deals', icon: Tag },
+  { label: 'Delivery Areas', href: '/admin/delivery', icon: MapPin },
   { label: 'Reservations', href: '/admin/reservations', icon: Calendar },
   { label: 'Settings', href: '/admin/settings', icon: Settings },
 ];
@@ -39,9 +43,11 @@ export default function AdminSidebar() {
         {/* Brand Header */}
         <div className="p-6 border-b border-amber-900/30">
           <Link href="/" className="flex items-center space-x-3 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 to-red-600 flex items-center justify-center shadow-lg shadow-amber-950/50">
-              <Flame className="w-6 h-6 text-amber-100 animate-pulse" />
-            </div>
+            <img
+              src="/logo.png"
+              alt="Tawakal BBQ Admin Logo"
+              className="w-10 h-10 object-contain rounded-full border border-amber-600/40 bg-[#0d0907] p-0.5"
+            />
             <div>
               <h2 className="font-bebas text-2xl tracking-wider text-amber-50 leading-none">
                 TAWAKAL <span className="text-amber-500">BBQ</span>

@@ -46,9 +46,11 @@ export default function AdminLoginPage() {
 
       <div className="w-full max-w-md bg-[#18110e]/90 backdrop-blur-md border border-amber-900/40 rounded-2xl p-8 shadow-2xl relative z-10">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-tr from-amber-600/20 to-red-600/20 border border-amber-500/30 mb-4 text-amber-400">
-            <Flame className="w-8 h-8 animate-pulse text-amber-500" />
-          </div>
+          <img
+            src="/logo.png"
+            alt="Tawakal BBQ Official Logo"
+            className="w-20 h-20 object-contain rounded-full border-2 border-amber-500/50 p-1 mx-auto mb-4 bg-[#0d0907] shadow-xl"
+          />
           <h1 className="font-bebas text-4xl tracking-wider text-amber-50 drop-shadow">
             TAWAKAL <span className="text-amber-500">BBQ</span>
           </h1>
