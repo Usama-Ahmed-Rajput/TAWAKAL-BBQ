@@ -174,7 +174,7 @@ export default function PublicDealsPage() {
                       <div className="flex items-center border border-[#C69A45]/40 rounded-xl bg-[#11100E] overflow-hidden">
                         <button
                           onClick={() => updateQuantity(`deal-${deal.id}`, -1)}
-                          className="p-2 text-[#9F9589] hover:text-white hover:bg-[#24201C] transition-colors"
+                          className="p-2 text-[#9F9589] hover:text-white hover:bg-[#24201C] transition-colors cursor-pointer"
                         >
                           <Minus className="w-3.5 h-3.5" />
                         </button>
@@ -183,7 +183,7 @@ export default function PublicDealsPage() {
                         </span>
                         <button
                           onClick={() => updateQuantity(`deal-${deal.id}`, 1)}
-                          className="p-2 text-[#9F9589] hover:text-white hover:bg-[#24201C] transition-colors"
+                          className="p-2 text-[#9F9589] hover:text-white hover:bg-[#24201C] transition-colors cursor-pointer"
                         >
                           <Plus className="w-3.5 h-3.5" />
                         </button>
@@ -191,7 +191,7 @@ export default function PublicDealsPage() {
                     ) : (
                       <button
                         onClick={() => handleAddDeal(deal)}
-                        className={`px-5 py-2.5 rounded-xl font-sans text-xs uppercase font-bold tracking-wider flex items-center gap-1.5 transition-all shadow-lg active:scale-95 ${
+                        className={`px-5 py-2.5 rounded-xl font-sans text-xs uppercase font-bold tracking-wider flex items-center gap-1.5 transition-all shadow-lg active:scale-95 cursor-pointer ${
                           isAdded
                             ? 'bg-[#4CAF50] text-white'
                             : 'bg-[#C83B22] hover:bg-[#D94A2D] text-white'

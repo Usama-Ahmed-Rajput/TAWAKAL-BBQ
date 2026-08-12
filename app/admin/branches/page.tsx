@@ -48,8 +48,15 @@ export default function AdminBranchesPage() {
   const fetchBranches = () => {
     setLoading(true);
     fetch('/api/admin/branches')
-      .then((res) => res.json())
+      .then((res) => {
+        if (res.status === 401 || res.status === 403) {
+          window.location.href = '/admin/login';
+          return null;
+        }
+        return res.json();
+      })
       .then((data) => {
+        if (!data) return;
         setBranches(data.branches || []);
         setLoading(false);
       })

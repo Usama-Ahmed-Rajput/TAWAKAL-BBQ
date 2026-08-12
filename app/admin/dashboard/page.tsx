@@ -20,8 +20,15 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     fetch('/api/admin/analytics')
-      .then((res) => res.json())
+      .then((res) => {
+        if (res.status === 401 || res.status === 403) {
+          window.location.href = '/admin/login';
+          return null;
+        }
+        return res.json();
+      })
       .then((resData) => {
+        if (!resData) return;
         setData(resData);
         setLoading(false);
       })

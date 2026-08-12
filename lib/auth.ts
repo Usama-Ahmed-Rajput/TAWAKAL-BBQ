@@ -2,9 +2,13 @@ import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { db } from './db';
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'tawakal_bbq_super_secret_jwt_key_2026_production'
-);
+function getJwtSecret(): Uint8Array {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || !secret.trim()) {
+    throw new Error('[CRITICAL CONFIG ERROR] JWT_SECRET environment variable is missing.');
+  }
+  return new TextEncoder().encode(secret);
+}
 
 export interface AdminUserSession {
   id: string;
@@ -20,12 +24,12 @@ export async function createAdminToken(session: AdminUserSession): Promise<strin
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
-    .sign(JWT_SECRET);
+    .sign(getJwtSecret());
 }
 
 export async function verifyAdminToken(token: string): Promise<AdminUserSession | null> {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, getJwtSecret());
     return payload as unknown as AdminUserSession;
   } catch (error) {
     return null;

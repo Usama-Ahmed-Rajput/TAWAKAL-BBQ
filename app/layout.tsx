@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Bebas_Neue, DM_Serif_Display, Inter, Noto_Nastaliq_Urdu } from 'next/font/google';
 import './globals.css';
 import { CartProvider } from '@/context/CartContext';
+import { ToastProvider } from '@/context/ToastContext';
 import { CartDrawer } from '@/components/CartDrawer';
 import { StickyMobileCart } from '@/components/StickyMobileCart';
 
@@ -86,11 +87,13 @@ export default function RootLayout({
         className="bg-[#11100E] text-[#F4EBDD] font-sans antialiased selection:bg-[#C83B22] selection:text-white"
         suppressHydrationWarning
       >
-        <CartProvider>
-          {children}
-          <CartDrawer />
-          <StickyMobileCart />
-        </CartProvider>
+        <ToastProvider>
+          <CartProvider>
+            {children}
+            <CartDrawer />
+            <StickyMobileCart />
+          </CartProvider>
+        </ToastProvider>
       </body>
     </html>
   );

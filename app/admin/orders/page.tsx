@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ShoppingBag, Search, Clock, CheckCircle, Truck, XCircle, Eye, Phone, MapPin, Flame } from 'lucide-react';
+import { useToast } from '@/context/ToastContext';
 
 const STATUSES = ['ALL', 'PENDING', 'CONFIRMED', 'PREPARING', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'];
 
@@ -12,18 +13,27 @@ export default function AdminOrdersPage() {
   const [search, setSearch] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [updating, setUpdating] = useState(false);
+  const { toast } = useToast();
 
   const fetchOrders = () => {
     setLoading(true);
     fetch(`/api/orders?status=${activeTab}&search=${encodeURIComponent(search)}`)
-      .then((res) => res.json())
+      .then((res) => {
+        if (res.status === 401 || res.status === 403) {
+          window.location.href = '/admin/login';
+          return null;
+        }
+        return res.json();
+      })
       .then((data) => {
+        if (!data) return;
         setOrders(data.orders || []);
         setLoading(false);
       })
       .catch((err) => {
         console.error(err);
         setLoading(false);
+        toast.error('Failed to load orders list');
       });
   };
 
@@ -39,14 +49,19 @@ export default function AdminOrdersPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderStatus: newStatus }),
       });
-      if (!res.ok) throw new Error('Failed to update status');
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Unable to update order status');
+      }
 
+      toast.success(`Order status updated to ${newStatus.replace(/_/g, ' ')}`);
       fetchOrders();
-      if (selectedOrder && selectedOrder.id === orderId) {
+      if (selectedOrder && (selectedOrder.id === orderId || selectedOrder.orderNumber === orderId)) {
         setSelectedOrder({ ...selectedOrder, orderStatus: newStatus });
       }
     } catch (err: any) {
-      alert(err.message);
+      console.error('[STATUS UPDATE ERROR]:', err);
+      toast.error(err.message || 'Unable to update order status');
     } finally {
       setUpdating(false);
     }
@@ -85,13 +100,13 @@ export default function AdminOrdersPage() {
       </div>
 
       {/* Filter Tabs & Search */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center space-x-1.5 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0">
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2.5">
+        <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 lg:pb-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {STATUSES.map((status) => (
             <button
               key={status}
               onClick={() => setActiveTab(status)}
-              className={`px-3 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all whitespace-nowrap shrink-0 ${
                 activeTab === status
                   ? 'bg-amber-600 text-amber-950 font-bold shadow-md'
                   : 'bg-[#18110e] text-amber-300/70 border border-amber-900/40 hover:text-amber-100'
@@ -102,15 +117,15 @@ export default function AdminOrdersPage() {
           ))}
         </div>
 
-        <div className="relative w-full sm:w-72">
+        <div className="relative w-full lg:w-52 shrink-0">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-500/60" />
           <input
             type="text"
-            placeholder="Order # or phone number..."
+            placeholder="Search order # or phone..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && fetchOrders()}
-            className="w-full bg-[#18110e] border border-amber-900/40 rounded-xl py-2 pl-10 pr-4 text-xs text-amber-100 focus:outline-none focus:border-amber-500"
+            className="w-full bg-[#18110e] border border-amber-900/40 rounded-xl py-2 pl-10 pr-4 text-xs font-semibold tracking-wider text-amber-100 placeholder:text-amber-500/50 focus:outline-none focus:border-[#C83B22] focus:ring-1 focus:ring-[#C83B22]"
           />
         </div>
       </div>

@@ -74,7 +74,10 @@ async function main() {
 
   // 3. Super Admin User
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@tawakalbbq.com';
-  const adminInitialPassword = process.env.ADMIN_INITIAL_PASSWORD || 'admin123456';
+  const adminInitialPassword = process.env.ADMIN_INITIAL_PASSWORD;
+  if (!adminInitialPassword || adminInitialPassword.trim().length < 8) {
+    throw new Error('[SEED ERROR] ADMIN_INITIAL_PASSWORD environment variable is required (min 8 chars).');
+  }
   const passwordHash = await bcrypt.hash(adminInitialPassword, 10);
   await prisma.user.upsert({
     where: { email: adminEmail },
@@ -109,7 +112,7 @@ async function main() {
       whatsapp: '+92 348 5650906',
       mapUrl: 'https://maps.google.com/?q=Tawakal+BBQ+Akhtar+Colony+Karachi',
       isActive: true,
-      openingHours: '12:00 PM - 01:00 AM',
+      openingHours: '05:00 PM - 01:00 AM',
     },
   });
 
@@ -117,24 +120,24 @@ async function main() {
     where: { slug: 'azam-town' },
     update: {
       name: 'Tawakal Restaurant — Azam Town',
-      address: 'Main Road Azam Town, Opposite Commercial Market, Karachi, Pakistan',
+      address: 'Main Road Azam Town, Opposite Meezan Bank, Karachi, Pakistan',
       locationReference: 'Azam Town Main Sector, Karachi, Pakistan',
       phone: '+92 348 9225866',
       whatsapp: '+92 348 2288166',
       mapUrl: 'https://maps.google.com/?q=Tawakal+BBQ+Azam+Town+Karachi',
       isActive: true,
-      openingHours: '12:00 PM - 01:00 AM',
+      openingHours: '05:00 PM - 01:00 AM',
     },
     create: {
       slug: 'azam-town',
       name: 'Tawakal Restaurant — Azam Town',
-      address: 'Main Road Azam Town, Opposite Commercial Market, Karachi, Pakistan',
+      address: 'Main Road Azam Town, Opposite Meezan Bank, Karachi, Pakistan',
       locationReference: 'Azam Town Main Sector, Karachi, Pakistan',
       phone: '+92 348 9225866',
       whatsapp: '+92 348 2288166',
       mapUrl: 'https://maps.google.com/?q=Tawakal+BBQ+Azam+Town+Karachi',
       isActive: true,
-      openingHours: '12:00 PM - 01:00 AM',
+      openingHours: ':00 PM - 01:00 AM',
     },
   });
 
@@ -146,7 +149,7 @@ async function main() {
     { branchId: akhtarBranch.id, name: 'Manzoor Colony', deliveryFee: 150, minOrder: 500, estimatedTime: '30-45 mins', sortOrder: 3 },
     { branchId: akhtarBranch.id, name: 'DHA / Defence (Phase 1-8)', deliveryFee: 200, minOrder: 600, estimatedTime: '35-50 mins', sortOrder: 4 },
     { branchId: akhtarBranch.id, name: 'Clifton / Bath Island', deliveryFee: 250, minOrder: 800, estimatedTime: '40-55 mins', sortOrder: 5 },
-    
+
     // Azam Town Branch Areas
     { branchId: azamBranch.id, name: 'Azam Town Main Sector', deliveryFee: 100, minOrder: 300, estimatedTime: '20-30 mins', sortOrder: 6 },
     { branchId: azamBranch.id, name: 'Chanesar Goth', deliveryFee: 130, minOrder: 400, estimatedTime: '25-35 mins', sortOrder: 7 },

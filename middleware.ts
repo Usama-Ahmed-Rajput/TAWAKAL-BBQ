@@ -2,9 +2,13 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'tawakal_bbq_super_secret_jwt_key_2026_production'
-);
+function getJwtSecret(): Uint8Array {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || !secret.trim()) {
+    throw new Error('[CRITICAL CONFIG ERROR] JWT_SECRET environment variable is missing.');
+  }
+  return new TextEncoder().encode(secret);
+}
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -15,7 +19,7 @@ export async function middleware(request: NextRequest) {
   });
   response.headers.set('x-pathname', pathname);
 
-  // Protect /admin routes except /admin/login
+  // Protect /admin UI routes except /admin/login
   if (pathname.startsWith('/admin') && !pathname.startsWith('/admin/login')) {
     const token = request.cookies.get('admin_token')?.value;
 
@@ -25,10 +29,25 @@ export async function middleware(request: NextRequest) {
     }
 
     try {
-      await jwtVerify(token, JWT_SECRET);
+      await jwtVerify(token, getJwtSecret());
     } catch (e) {
       const loginUrl = new URL('/admin/login', request.url);
       return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  // Protect /api/admin/* endpoints except login
+  if (pathname.startsWith('/api/admin') && !pathname.startsWith('/api/admin/auth/login')) {
+    const token = request.cookies.get('admin_token')?.value;
+
+    if (!token) {
+      return NextResponse.json({ error: 'UNAUTHORIZED: Admin token missing' }, { status: 401 });
+    }
+
+    try {
+      await jwtVerify(token, getJwtSecret());
+    } catch (e) {
+      return NextResponse.json({ error: 'UNAUTHORIZED: Invalid or expired token' }, { status: 401 });
     }
   }
 
@@ -36,5 +55,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: ['/admin/:path*', '/api/admin/:path*'],
 };

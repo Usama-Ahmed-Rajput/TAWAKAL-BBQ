@@ -18,7 +18,7 @@ export const DishCard: React.FC<DishCardProps> = ({ dish, onOrder }) => {
 
   // Extract price number from string e.g. "Rs. 350" -> 350
   const numericPrice = parseInt(dish.price.replace(/[^0-9]/g, ''), 10) || 350;
-  const slug = dish.id || dish.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  const slug = dish.slug || (dish.id && !dish.id.startsWith('dish-') ? dish.id : dish.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'));
   const qtyInCart = getItemQuantity(slug, 'ITEM');
 
   const handleAddToCart = () => {
@@ -125,7 +125,7 @@ export const DishCard: React.FC<DishCardProps> = ({ dish, onOrder }) => {
           <div className="flex items-center border border-[var(--color-gold)]/40 rounded-xl bg-[#11100E] overflow-hidden">
             <button
               onClick={() => updateQuantity(`item-${slug}`, -1)}
-              className="p-2 text-[#9F9589] hover:text-white hover:bg-[#24201C] transition-colors"
+              className="p-2 text-[#9F9589] hover:text-white hover:bg-[#24201C] transition-colors cursor-pointer"
             >
               <Minus className="w-3.5 h-3.5" />
             </button>
@@ -134,7 +134,7 @@ export const DishCard: React.FC<DishCardProps> = ({ dish, onOrder }) => {
             </span>
             <button
               onClick={() => updateQuantity(`item-${slug}`, 1)}
-              className="p-2 text-[#9F9589] hover:text-white hover:bg-[#24201C] transition-colors"
+              className="p-2 text-[#9F9589] hover:text-white hover:bg-[#24201C] transition-colors cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
             </button>
@@ -142,7 +142,7 @@ export const DishCard: React.FC<DishCardProps> = ({ dish, onOrder }) => {
         ) : (
           <button
             onClick={handleAddToCart}
-            className={`px-4 py-2.5 rounded-xl font-sans text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-md active:scale-95 ${
+            className={`px-4 py-2.5 rounded-xl font-sans text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer ${
               isAdded
                 ? 'bg-[#4CAF50] text-white'
                 : 'bg-[#C83B22] hover:bg-[#D94A2D] text-white'

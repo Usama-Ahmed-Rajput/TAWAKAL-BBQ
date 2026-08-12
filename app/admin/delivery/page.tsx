@@ -53,6 +53,12 @@ export default function AdminDeliveryPage() {
         fetch('/api/admin/delivery-areas'),
         fetch('/api/admin/branches'),
       ]);
+
+      if (areasRes.status === 401 || branchesRes.status === 401) {
+        window.location.href = '/admin/login';
+        return;
+      }
+
       const areasData = await areasRes.json();
       const branchesData = await branchesRes.json();
 

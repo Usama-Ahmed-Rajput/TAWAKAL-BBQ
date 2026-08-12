@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { requireAdminPermission } from '@/lib/auth';
 
 export async function GET() {
   try {
@@ -14,6 +15,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    await requireAdminPermission('branches.manage');
     const body = await req.json();
     const { id, name, address, locationReference, phone, whatsapp, mapUrl, openingHours, isActive } = body;
 
@@ -79,6 +81,7 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
+    await requireAdminPermission('branches.manage');
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 

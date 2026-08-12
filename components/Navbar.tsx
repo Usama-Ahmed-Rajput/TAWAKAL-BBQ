@@ -15,10 +15,12 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({ onOrderClick }) => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const { totalItemsCount, openDrawer } = useCart();
   const pathname = usePathname();
 
   useEffect(() => {
+    setMounted(true);
     const handleScroll = () => {
       setScrolled(window.scrollY > 40);
     };
@@ -31,6 +33,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOrderClick }) => {
     { name: 'HOME', href: '/' },
     { name: 'MENU', href: '/menu' },
     { name: 'DEALS', href: '/deals' },
+    { name: 'TRACK ORDER', href: '/track-order' },
     { name: 'LOCATION', href: '/location' },
     { name: 'ABOUT', href: '/about' },
     { name: 'CONTACT', href: '/contact' },
@@ -70,7 +73,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onOrderClick }) => {
           {/* Desktop Nav Links */}
           <nav className="hidden md:flex items-center gap-6">
             {navLinks.map((link) => {
-              const isActive = pathname === link.href;
+              const isActive =
+                mounted &&
+                (pathname === link.href ||
+                  (link.href !== '/' && pathname?.startsWith(link.href)));
               return (
                 <Link
                   key={link.name}

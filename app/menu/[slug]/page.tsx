@@ -3,8 +3,10 @@
 import React, { useState, useEffect, use } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
+import { SignatureDishes } from '@/components/SignatureDishes';
+import { SIGNATURE_DISHES } from '@/data/dishes';
 import { useCart } from '@/context/CartContext';
-import { Flame, Plus, Minus, Check, ArrowLeft, ShieldCheck, ShoppingBag } from 'lucide-react';
+import { Flame, Plus, Minus, Check, ArrowLeft, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
 interface MenuItem {
@@ -41,17 +43,62 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
   useEffect(() => {
     async function loadProduct() {
       try {
+        // Try fetching by slug/id directly from API endpoint
         const res = await fetch(`/api/menu/${slug}`);
         if (res.ok) {
           const data = await res.json();
-          setItem(data.item);
-        } else {
-          // Fallback: fetch menu list and find item by slug
-          const menuRes = await fetch('/api/menu');
-          const menuData = await menuRes.json();
-          const found = menuData.items?.find((i: MenuItem) => i.slug === slug);
-          if (found) setItem(found);
+          if (data.item) {
+            setItem(data.item);
+            return;
+          }
         }
+
+        // Fallback 1: fetch all menu items from API and find match
+        const menuRes = await fetch('/api/menu');
+        const menuData = await menuRes.json();
+        const items: MenuItem[] = menuData.items || [];
+
+        let found = items.find((i) => i.slug === slug || i.id === slug);
+
+        // Fallback 2: Normalize comparison
+        if (!found) {
+          const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9]/g, '');
+          found = items.find((i) => {
+            const cleanItemSlug = i.slug.toLowerCase().replace(/[^a-z0-9]/g, '');
+            const cleanItemName = i.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+            return (
+              cleanItemSlug === cleanSlug ||
+              cleanItemName === cleanSlug ||
+              cleanItemSlug.includes(cleanSlug) ||
+              cleanSlug.includes(cleanItemSlug)
+            );
+          });
+        }
+
+        // Fallback 3: Search static SIGNATURE_DISHES
+        if (!found) {
+          const sigDish = SIGNATURE_DISHES.find(
+            (s) =>
+              s.slug === slug ||
+              s.id === slug ||
+              s.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') === slug
+          );
+          if (sigDish) {
+            found = {
+              id: sigDish.id,
+              name: sigDish.name,
+              slug: sigDish.slug || sigDish.id,
+              urduName: sigDish.urduName,
+              description: sigDish.description,
+              price: parseInt(sigDish.price.replace(/[^0-9]/g, ''), 10) || 350,
+              image: sigDish.image,
+              isAvailable: true,
+              isPopular: true,
+            };
+          }
+        }
+
+        if (found) setItem(found);
       } catch (err) {
         console.error('Failed to load product', err);
       } finally {
@@ -99,13 +146,20 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
       <Navbar />
 
       <main className="pt-32 pb-20 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-6">
+        <div className="mb-6 flex items-center justify-between">
           <Link
             href="/menu"
-            className="inline-flex items-center gap-2 text-xs font-sans text-[#9F9589] hover:text-[#C69A45] transition-colors uppercase font-bold tracking-wider"
+            className="inline-flex items-center gap-2 text-xs font-sans text-[#9F9589] hover:text-[#C69A45] transition-colors uppercase font-bold tracking-wider cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>BACK TO MENU</span>
+          </Link>
+          <Link
+            href="/menu"
+            className="inline-flex items-center gap-1.5 text-xs font-sans text-[#C69A45] hover:text-white transition-colors uppercase font-bold tracking-wider cursor-pointer"
+          >
+            <span>VIEW FULL MENU</span>
+            <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
 
@@ -115,14 +169,18 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
             <p>Loading dish details...</p>
           </div>
         ) : !item ? (
-          <div className="py-20 text-center text-[#9F9589] bg-[#1A1815] rounded-2xl border border-[#24201C]">
-            <h1 className="font-serif text-2xl text-[#F4EBDD] mb-2">Dish Not Found</h1>
-            <p className="text-xs mb-6">We couldn't find the requested menu item.</p>
+          <div className="py-16 text-center text-[#9F9589] bg-[#1A1815] rounded-3xl border border-[#24201C] p-8">
+            <Flame className="w-12 h-12 text-[#C83B22] mx-auto mb-4 opacity-75" />
+            <h1 className="font-bebas text-3xl text-[#F4EBDD] tracking-wider mb-2">DISH DETAILS</h1>
+            <p className="text-xs max-w-md mx-auto mb-6">
+              Explore our signature charcoal grilled specialties below or view the full menu.
+            </p>
             <Link
               href="/menu"
-              className="inline-flex px-6 py-3 rounded-xl bg-[#C83B22] text-white font-sans text-xs uppercase font-bold tracking-wider"
+              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-[#C83B22] hover:bg-[#D94A2D] text-white font-sans text-xs uppercase font-bold tracking-wider shadow-lg transition-all active:scale-95 cursor-pointer"
             >
-              BROWSE ALL DISHES
+              <span>VIEW FULL MENU</span>
+              <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         ) : (
@@ -212,7 +270,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
                   <div className="flex items-center border border-[#24201C] rounded-xl bg-[#11100E] overflow-hidden">
                     <button
                       onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                      className="p-3 text-[#9F9589] hover:text-white hover:bg-[#24201C] transition-colors"
+                      className="p-3 text-[#9F9589] hover:text-white hover:bg-[#24201C] transition-colors cursor-pointer"
                     >
                       <Minus className="w-4 h-4" />
                     </button>
@@ -221,7 +279,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
                     </span>
                     <button
                       onClick={() => setQuantity((q) => q + 1)}
-                      className="p-3 text-[#9F9589] hover:text-white hover:bg-[#24201C] transition-colors"
+                      className="p-3 text-[#9F9589] hover:text-white hover:bg-[#24201C] transition-colors cursor-pointer"
                     >
                       <Plus className="w-4 h-4" />
                     </button>
@@ -237,7 +295,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
 
                 <button
                   onClick={handleAddToCart}
-                  className={`w-full py-4 rounded-xl font-sans text-xs uppercase font-bold tracking-wider flex items-center justify-center gap-2 shadow-xl transition-all active:scale-95 ${
+                  className={`w-full py-4 rounded-xl font-sans text-xs uppercase font-bold tracking-wider flex items-center justify-center gap-2 shadow-xl transition-all active:scale-95 cursor-pointer ${
                     isAdded
                       ? 'bg-[#4CAF50] text-white'
                       : 'bg-[#C83B22] hover:bg-[#D94A2D] text-white'
@@ -259,6 +317,29 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
             </div>
           </div>
         )}
+
+        {/* Signature Dishes Section */}
+        <div className="mt-16">
+          <SignatureDishes />
+        </div>
+
+        {/* View Full Menu CTA Section */}
+        <div className="mt-16 text-center bg-gradient-to-r from-[#1A1815] via-[#24201C] to-[#1A1815] p-8 sm:p-12 rounded-3xl border border-[#C69A45]/30 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-[#C83B22]/10 rounded-full blur-3xl pointer-events-none" />
+          <h3 className="font-bebas text-3xl sm:text-4xl text-[#F4EBDD] tracking-wider mb-3">
+            EXPLORE OUR ENTIRE MENU
+          </h3>
+          <p className="font-sans text-xs sm:text-sm text-[#9F9589] max-w-xl mx-auto mb-6">
+            Discover over 40+ authentic fire-grilled delicacies, sizzling kebabs, fresh rolls, burgers, parathas, and exclusive family deals!
+          </p>
+          <Link
+            href="/menu"
+            className="inline-flex items-center gap-2.5 px-8 py-4 rounded-xl bg-[#C83B22] hover:bg-[#D94A2D] text-white font-sans text-xs uppercase font-bold tracking-widest shadow-xl hover:shadow-[#C83B22]/40 transition-all active:scale-95 cursor-pointer"
+          >
+            <span>VIEW FULL MENU</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
       </main>
 
       <Footer />

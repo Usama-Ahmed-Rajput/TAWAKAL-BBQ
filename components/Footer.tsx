@@ -53,6 +53,11 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
+                <Link href="/track-order" className="hover:text-[#C83B22] transition-colors text-[#C69A45] font-bold">
+                  TRACK YOUR ORDER
+                </Link>
+              </li>
+              <li>
                 <Link href="/location" className="hover:text-[#C83B22] transition-colors">
                   LOCATION & MAP
                 </Link>

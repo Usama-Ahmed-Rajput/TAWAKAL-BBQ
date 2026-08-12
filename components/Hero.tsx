@@ -38,14 +38,14 @@ export const Hero: React.FC<HeroProps> = ({ onOrderClick }) => {
     if (videoRef.current) {
       setVideoDuration(videoRef.current.duration || 10);
       setVideoLoaded(true);
-      videoRef.current.play().catch(() => {});
+      videoRef.current.play().catch(() => { });
     }
   };
 
   // Ensure video plays on mount
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.play().catch(() => {});
+      videoRef.current.play().catch(() => { });
     }
   }, []);
 
@@ -76,7 +76,7 @@ export const Hero: React.FC<HeroProps> = ({ onOrderClick }) => {
             videoRef.current.currentTime = current + diff * 0.18;
           }
         } else if (videoRef.current.paused) {
-          videoRef.current.play().catch(() => {});
+          videoRef.current.play().catch(() => { });
         }
       }
       animationFrameId = requestAnimationFrame(updateVideoTime);
@@ -196,7 +196,7 @@ export const Hero: React.FC<HeroProps> = ({ onOrderClick }) => {
       </div>
 
       {/* Scroll Down Indicator */}
-      <motion.div
+      {/* <motion.div
         style={{ opacity: scrollIndicatorOpacity }}
         className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2 pointer-events-none"
       >
@@ -210,7 +210,7 @@ export const Hero: React.FC<HeroProps> = ({ onOrderClick }) => {
             className="w-1.5 h-2.5 bg-[var(--color-primary)] rounded-full"
           />
         </div>
-      </motion.div>
+      </motion.div> */}
     </section>
   );
 };

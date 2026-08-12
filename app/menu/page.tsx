@@ -217,7 +217,7 @@ export default function PublicMenuPage() {
                       <div className="flex items-center border border-[#C69A45]/40 rounded-xl bg-[#11100E] overflow-hidden">
                         <button
                           onClick={() => updateQuantity(`item-${item.id}`, -1)}
-                          className="p-2 text-[#9F9589] hover:text-white hover:bg-[#24201C] transition-colors"
+                          className="p-2 text-[#9F9589] hover:text-white hover:bg-[#24201C] transition-colors cursor-pointer"
                         >
                           <Minus className="w-3.5 h-3.5" />
                         </button>
@@ -226,7 +226,7 @@ export default function PublicMenuPage() {
                         </span>
                         <button
                           onClick={() => updateQuantity(`item-${item.id}`, 1)}
-                          className="p-2 text-[#9F9589] hover:text-white hover:bg-[#24201C] transition-colors"
+                          className="p-2 text-[#9F9589] hover:text-white hover:bg-[#24201C] transition-colors cursor-pointer"
                         >
                           <Plus className="w-3.5 h-3.5" />
                         </button>
@@ -234,7 +234,7 @@ export default function PublicMenuPage() {
                     ) : (
                       <button
                         onClick={() => handleAddToCart(item)}
-                        className={`px-4 py-2.5 rounded-xl font-sans text-xs uppercase font-bold tracking-wider flex items-center gap-1.5 transition-all shadow-md active:scale-95 ${
+                        className={`px-4 py-2.5 rounded-xl font-sans text-xs uppercase font-bold tracking-wider flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer ${
                           isAdded
                             ? 'bg-[#4CAF50] text-white'
                             : 'bg-[#C83B22] hover:bg-[#D94A2D] text-white'

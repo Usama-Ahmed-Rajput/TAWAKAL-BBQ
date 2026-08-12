@@ -130,15 +130,23 @@ Please confirm my order. Thank you!`;
                   href={generateWhatsAppLink()}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-6 py-3 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-sans text-xs uppercase font-bold tracking-wider flex items-center gap-2 shadow-lg transition-transform active:scale-95"
+                  className="px-6 py-3 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-sans text-xs uppercase font-bold tracking-wider flex items-center gap-2 shadow-lg transition-transform active:scale-95 cursor-pointer"
                 >
                   <MessageSquare className="w-4 h-4 fill-white" />
                   <span>ORDER VIA WHATSAPP</span>
                 </a>
 
                 <Link
+                  href={`/track-order?orderNumber=${order.orderNumber}&phone=${order.customerPhone}`}
+                  className="px-6 py-3 rounded-xl bg-[#C83B22] hover:bg-[#D94A2D] text-white font-sans text-xs uppercase font-bold tracking-wider shadow-lg flex items-center gap-2 transition-transform active:scale-95 cursor-pointer"
+                >
+                  <Clock className="w-4 h-4" />
+                  <span>TRACK LIVE STATUS</span>
+                </Link>
+
+                <Link
                   href="/menu"
-                  className="px-6 py-3 rounded-xl bg-[#24201C] hover:bg-[#2A2520] text-[#F4EBDD] font-sans text-xs uppercase font-bold tracking-wider border border-[#24201C]"
+                  className="px-6 py-3 rounded-xl bg-[#24201C] hover:bg-[#2A2520] text-[#F4EBDD] font-sans text-xs uppercase font-bold tracking-wider border border-[#24201C] cursor-pointer"
                 >
                   ORDER MORE FOOD
                 </Link>

@@ -130,7 +130,7 @@ export const MenuItem: React.FC<MenuItemProps> = ({ item }) => {
         </span>
         <button
           onClick={handleAddToCart}
-          className={`px-4 py-2 rounded-xl font-sans text-xs uppercase font-bold tracking-wider flex items-center gap-1.5 transition-all shadow-md active:scale-95 ${
+          className={`px-4 py-2 rounded-xl font-sans text-xs uppercase font-bold tracking-wider flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer ${
             added
               ? 'bg-[#4CAF50] text-white'
               : 'bg-[#C83B22] hover:bg-[#D94A2D] text-white'

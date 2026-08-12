@@ -190,6 +190,8 @@ model Order {
   @@index([orderStatus])
   @@index([createdAt])
   @@index([orderNumber])
+  @@index([customerPhone])
+  @@index([branchId])
 }
 
 model OrderItem {
@@ -454,4 +456,7 @@ model DeliveryArea {
   sortOrder     Int      @default(0)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  @@index([branchId])
+  @@index([isActive])
 }

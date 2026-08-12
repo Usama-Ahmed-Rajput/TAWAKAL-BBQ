@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/context/ToastContext';
 import {
   Settings,
   Save,
@@ -20,6 +21,7 @@ import {
 
 export default function AdminSettingsPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'general' | 'restaurant' | 'branches' | 'notifications' | 'security'>('general');
 
   // General & Restaurant settings
@@ -89,8 +91,9 @@ export default function AdminSettingsPage() {
       if (!res.ok) throw new Error(data.error || 'Failed to save settings');
 
       setGeneralMessage('Restaurant configuration saved successfully!');
+      toast.success('Restaurant configuration saved successfully!');
     } catch (err: any) {
-      alert(err.message);
+      toast.error(err.message || 'Failed to save settings');
     } finally {
       setSaving(false);
     }
@@ -190,7 +193,7 @@ export default function AdminSettingsPage() {
       </div>
 
       {/* Tabs Navigation */}
-      <div className="flex items-center gap-2 border-b border-amber-900/40 overflow-x-auto pb-2">
+      <div className="flex items-center gap-2 border-b border-amber-900/40 overflow-x-auto pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         <button
           onClick={() => setActiveTab('general')}
           className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all cursor-pointer ${

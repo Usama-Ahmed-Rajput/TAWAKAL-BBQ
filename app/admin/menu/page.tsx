@@ -198,17 +198,17 @@ export default function AdminMenuPage() {
       </div>
 
       {/* Filter & Search Controls */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center space-x-2 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0">
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2.5">
+        <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 lg:pb-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           <button
             onClick={() => setSelectedCategory('all')}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${
+            className={`px-3 py-1.5 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer shrink-0 ${
               selectedCategory === 'all'
                 ? 'bg-amber-600 text-amber-950 shadow-md font-bold'
                 : 'bg-[#18110e] text-amber-300/70 border border-amber-900/40 hover:text-amber-100'
             }`}
           >
-            All Categories ({items.length})
+            ALL ({items.length})
           </button>
           {categories.map((cat) => {
             const count = items.filter((i) => i.categoryId === cat.id || i.category?.slug === cat.slug).length;
@@ -216,7 +216,7 @@ export default function AdminMenuPage() {
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.slug)}
-                className={`px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer shrink-0 ${
                   selectedCategory === cat.slug
                     ? 'bg-amber-600 text-amber-950 shadow-md font-bold'
                     : 'bg-[#18110e] text-amber-300/70 border border-amber-900/40 hover:text-amber-100'
@@ -228,14 +228,14 @@ export default function AdminMenuPage() {
           })}
         </div>
 
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-500/60" />
+        <div className="relative w-full lg:w-56 shrink-0">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-amber-500/60" />
           <input
             type="text"
             placeholder="Search dish by name..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-[#18110e] border border-amber-900/40 rounded-xl py-2 pl-10 pr-4 text-xs text-amber-100 focus:outline-none focus:border-amber-500"
+            className="w-full bg-[#18110e] border border-amber-900/40 rounded-xl py-1.5 pl-9 pr-3 text-xs text-amber-100 focus:outline-none focus:border-amber-500"
           />
         </div>
       </div>

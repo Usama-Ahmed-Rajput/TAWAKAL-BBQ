@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { requireAdminPermission } from '@/lib/auth';
 
 export async function GET() {
   try {
@@ -15,6 +16,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    await requireAdminPermission('delivery.manage');
     const body = await req.json();
     const { id, name, branchId, deliveryFee, minOrder, estimatedTime, isActive, sortOrder } = body;
 
@@ -29,7 +31,7 @@ export async function POST(req: Request) {
         where: { id },
         data: {
           name: normalizedName,
-          branchId: branchId || undefined,
+          branchId: branchId ? branchId : null,
           deliveryFee: parseFloat(deliveryFee) || 150,
           minOrder: parseFloat(minOrder) || 300,
           estimatedTime: estimatedTime || '30-45 mins',
@@ -44,7 +46,7 @@ export async function POST(req: Request) {
     const area = await prisma.deliveryArea.upsert({
       where: { name: normalizedName },
       update: {
-        branchId: branchId || undefined,
+        branchId: branchId ? branchId : null,
         deliveryFee: parseFloat(deliveryFee) || 150,
         minOrder: parseFloat(minOrder) || 300,
         estimatedTime: estimatedTime || '30-45 mins',
@@ -53,7 +55,7 @@ export async function POST(req: Request) {
       },
       create: {
         name: normalizedName,
-        branchId: branchId || undefined,
+        branchId: branchId ? branchId : null,
         deliveryFee: parseFloat(deliveryFee) || 150,
         minOrder: parseFloat(minOrder) || 300,
         estimatedTime: estimatedTime || '30-45 mins',
@@ -78,6 +80,7 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
+    await requireAdminPermission('delivery.manage');
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 

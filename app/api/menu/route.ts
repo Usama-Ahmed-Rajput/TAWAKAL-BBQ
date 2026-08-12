@@ -9,7 +9,10 @@ export async function GET() {
 
     const items = await prisma.menuItem.findMany({
       include: { category: true },
-      orderBy: { sortOrder: 'asc' },
+      orderBy: [
+        { category: { sortOrder: 'asc' } },
+        { sortOrder: 'asc' },
+      ],
     });
 
     return NextResponse.json({ categories, items });
