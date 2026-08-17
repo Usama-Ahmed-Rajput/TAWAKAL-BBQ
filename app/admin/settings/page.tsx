@@ -163,10 +163,14 @@ export default function AdminSettingsPage() {
       if (data.devices) {
         setRegisteredDevices(data.devices);
       }
-      setPushEnabled(!!data.active);
-      addDiagLog(`Push active status: ${!!data.active}, Admin device count: ${data.devices?.length || 0}`);
+
+      // Calculate ON state: ON only if Notification.permission === 'granted' AND SW is active AND sub exists AND GET API confirms active === true
+      const isDeviceActive = currentPerm === 'granted' && !!reg?.active && !!sub && !!data.active;
+      setPushEnabled(isDeviceActive);
+      addDiagLog(`Calculated device active status: ${isDeviceActive} (Perm: ${currentPerm}, SW Active: ${!!reg?.active}, Sub: ${!!sub}, API Active: ${!!data.active}), Total Admin Devices: ${data.devices?.length || 0}`);
     } catch (err: any) {
       addDiagLog(`fetchDevices() error: ${err.message || err}`);
+      setPushEnabled(false);
     }
   };
 
@@ -712,19 +716,11 @@ export default function AdminSettingsPage() {
                   className={`px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border flex items-center gap-1.5 ${
                     pushEnabled
                       ? 'bg-emerald-950/90 text-emerald-400 border-emerald-800'
-                      : diag.notificationPermission === 'denied'
-                      ? 'bg-red-950/90 text-red-300 border-red-800'
-                      : 'bg-amber-950/90 text-amber-400 border-amber-800'
+                      : 'bg-red-950/90 text-red-300 border-red-800'
                   }`}
                 >
-                  <span>{pushEnabled ? '🟢' : diag.notificationPermission === 'denied' ? '🔴' : '⚪'}</span>
-                  <span>
-                    {pushEnabled
-                      ? 'Notifications Enabled & Active'
-                      : diag.notificationPermission === 'denied'
-                      ? 'Notifications Blocked by Chrome'
-                      : 'Notifications Not Enabled'}
-                  </span>
+                  <span>{pushEnabled ? '🟢' : '🔴'}</span>
+                  <span>{pushEnabled ? 'NOTIFICATIONS ENABLED' : 'NOTIFICATIONS OFF'}</span>
                 </span>
               </div>
             </div>
@@ -764,7 +760,7 @@ export default function AdminSettingsPage() {
               <p className="text-xs text-amber-300/80 bg-[#0d0907] p-3 rounded-xl border border-amber-900/30">
                 {pushEnabled
                   ? '🟢 This device is registered to receive new-order alerts even when the admin dashboard is not currently open, where supported by the device/browser.'
-                  : '⚪ This device is not currently registered for instant push alerts. Click "Enable Order Notifications" below to activate.'}
+                  : '🔴 Notifications for new orders are currently OFF for this device. Click "Enable Order Notifications" below to activate.'}
               </p>
             )}
 
@@ -785,8 +781,8 @@ export default function AdminSettingsPage() {
                   {pushLoading
                     ? 'Processing...'
                     : pushEnabled
-                    ? 'Disable Notifications'
-                    : '🔔 Enable Order Notifications'}
+                    ? '🔕 DISABLE ORDER NOTIFICATIONS'
+                    : '🔔 ENABLE ORDER NOTIFICATIONS'}
                 </span>
               </button>
 
