@@ -7,15 +7,16 @@ generator client {
 }
 
 model User {
-  id           String     @id @default(uuid())
+  id           String             @id @default(uuid())
   name         String
-  email        String     @unique
+  email        String             @unique
   passwordHash String
   roleId       String
-  role         Role       @relation(fields: [roleId], references: [id])
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  role         Role               @relation(fields: [roleId], references: [id])
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
   auditLogs    AuditLog[]
+  pushSubscriptions PushSubscription[]
 }
 
 model Role {
@@ -459,4 +460,18 @@ model DeliveryArea {
 
   @@index([branchId])
   @@index([isActive])
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }

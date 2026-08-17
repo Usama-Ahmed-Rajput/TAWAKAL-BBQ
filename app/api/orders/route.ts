@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireAdminPermission } from '@/lib/auth';
+import { sendAdminOrderNotification } from '@/lib/push';
 
 export async function GET(req: Request) {
   try {
@@ -169,6 +170,14 @@ export async function POST(req: Request) {
         orderItems: true,
         branch: true,
       },
+    });
+
+    // 6. Trigger Admin Push Notification asynchronously (Fail-safe, non-blocking)
+    sendAdminOrderNotification({
+      orderNumber: newOrder.orderNumber,
+      totalAmount: newOrder.totalAmount,
+    }).catch((err) => {
+      console.error('[PUSH TRIGGER ERROR]:', err);
     });
 
     return NextResponse.json({

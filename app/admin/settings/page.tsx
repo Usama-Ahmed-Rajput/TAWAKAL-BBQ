@@ -41,6 +41,12 @@ export default function AdminSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [generalMessage, setGeneralMessage] = useState('');
 
+  // Push Notification state
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
+  const [registeredDevices, setRegisteredDevices] = useState<any[]>([]);
+  const [testLoading, setTestLoading] = useState(false);
+
   // Password Change state
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -48,6 +54,170 @@ export default function AdminSettingsPage() {
   const [passLoading, setPassLoading] = useState(false);
   const [passError, setPassError] = useState('');
   const [passSuccess, setPassSuccess] = useState('');
+
+  const parseDeviceName = (ua: string): { icon: string; name: string } => {
+    if (!ua || ua === 'Unknown Device') return { icon: '💻', name: 'Unknown Device' };
+    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
+    let os = 'Desktop';
+    if (/Android/i.test(ua)) os = 'Android';
+    else if (/iPhone|iPad|iPod/i.test(ua)) os = 'iOS';
+    else if (/Windows/i.test(ua)) os = 'Windows';
+    else if (/Macintosh|Mac OS X/i.test(ua)) os = 'macOS';
+
+    let browser = 'Browser';
+    if (/Edg/i.test(ua)) browser = 'Edge';
+    else if (/Chrome/i.test(ua)) browser = 'Chrome';
+    else if (/Safari/i.test(ua)) browser = 'Safari';
+    else if (/Firefox/i.test(ua)) browser = 'Firefox';
+
+    const icon = isMobile ? '📱' : '💻';
+    return { icon, name: `${isMobile ? 'Mobile Device' : 'Desktop'} (${os} / ${browser})` };
+  };
+
+  const fetchDevices = async () => {
+    try {
+      if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
+      const reg = await navigator.serviceWorker.ready.catch(() => null);
+      const sub = reg ? await reg.pushManager.getSubscription() : null;
+      const endpoint = sub ? sub.endpoint : '';
+
+      const res = await fetch(`/api/admin/push-subscriptions${endpoint ? `?endpoint=${encodeURIComponent(endpoint)}` : ''}`);
+      const data = await res.json();
+
+      if (data.devices) {
+        setRegisteredDevices(data.devices);
+      }
+      setPushEnabled(!!data.active);
+    } catch (err) {
+      console.error('Failed to fetch registered devices:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchDevices();
+  }, []);
+
+  const handleSendTest = async () => {
+    setTestLoading(true);
+    try {
+      const reg = await navigator.serviceWorker.ready.catch(() => null);
+      const sub = reg ? await reg.pushManager.getSubscription() : null;
+
+      const res = await fetch('/api/admin/push-subscriptions/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint: sub ? sub.endpoint : undefined }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to send test notification');
+      }
+
+      toast.success('🔔 Test notification sent! Check your device notifications.');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to send test notification');
+    } finally {
+      setTestLoading(false);
+    }
+  };
+
+  const handleRemoveDevice = async (id: string) => {
+    try {
+      const res = await fetch('/api/admin/push-subscriptions', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to remove device');
+
+      toast.info('Device subscription removed.');
+      fetchDevices();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to remove device');
+    }
+  };
+
+  const handleTogglePush = async () => {
+    setPushLoading(true);
+    try {
+      if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+        throw new Error('Push notifications are not supported on this browser/device.');
+      }
+
+      const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!vapidPublicKey) {
+        throw new Error('VAPID Public Key is missing in environment variables.');
+      }
+
+      const reg = await navigator.serviceWorker.ready;
+
+      if (pushEnabled) {
+        // Disable Push
+        const sub = await reg.pushManager.getSubscription();
+        if (sub) {
+          await sub.unsubscribe();
+          await fetch('/api/admin/push-subscriptions', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ endpoint: sub.endpoint }),
+          });
+        }
+        setPushEnabled(false);
+        toast.info('Admin push notifications disabled for this device.');
+        fetchDevices();
+      } else {
+        // Enable Push
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+          throw new Error('Notification permission was denied.');
+        }
+
+        const padding = '='.repeat((4 - (vapidPublicKey.length % 4)) % 4);
+        const base64 = (vapidPublicKey + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        for (let i = 0; i < rawData.length; ++i) {
+          outputArray[i] = rawData.charCodeAt(i);
+        }
+
+        let sub = await reg.pushManager.getSubscription();
+        if (!sub) {
+          sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: outputArray,
+          });
+        }
+
+        const subJson = sub.toJSON();
+        const res = await fetch('/api/admin/push-subscriptions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            endpoint: sub.endpoint,
+            keys: subJson.keys,
+            userAgent: navigator.userAgent,
+          }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to save push subscription on server.');
+        }
+
+        setPushEnabled(true);
+        toast.success('🔔 Admin order push notifications enabled for this device!');
+        fetchDevices();
+      }
+    } catch (err: any) {
+      console.error('[PUSH TOGGLE ERROR]:', err);
+      toast.error(err.message || 'Failed to update push notification settings.');
+    } finally {
+      setPushLoading(false);
+    }
+  };
 
   useEffect(() => {
     async function loadData() {
@@ -383,16 +553,150 @@ export default function AdminSettingsPage() {
         </div>
       )}
 
-      {/* Tab 3: Notifications Info */}
+      {/* Tab 3: Notifications Section */}
       {activeTab === 'notifications' && (
-        <div className="bg-[#18110e] border border-amber-900/40 rounded-2xl p-8 text-center space-y-4">
-          <Bell className="w-12 h-12 text-amber-500 mx-auto" />
-          <h3 className="font-bebas text-2xl tracking-wider text-amber-100">
-            ORDER & SYSTEM NOTIFICATIONS
-          </h3>
-          <p className="text-xs text-amber-200/70 max-w-md mx-auto">
-            Sound alerts for new customer orders and WhatsApp instant notification alerts are enabled by default.
-          </p>
+        <div className="space-y-6">
+          {/* SECTION 1: ORDER PUSH NOTIFICATIONS */}
+          <div className="bg-[#18110e] border border-amber-900/40 rounded-2xl p-6 shadow-xl space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-amber-900/30">
+              <div className="flex items-center space-x-3">
+                <Bell className="w-6 h-6 text-amber-500 shrink-0" />
+                <div>
+                  <h3 className="font-bebas text-2xl tracking-wider text-amber-100 uppercase">
+                    ORDER PUSH NOTIFICATIONS
+                  </h3>
+                  <p className="text-xs text-amber-200/60 font-serif italic">
+                    Receive instant notifications on this device whenever a new customer order is placed.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border flex items-center gap-1.5 ${
+                    pushEnabled
+                      ? 'bg-emerald-950/90 text-emerald-400 border-emerald-800'
+                      : 'bg-amber-950/90 text-amber-400 border-amber-800'
+                  }`}
+                >
+                  <span>{pushEnabled ? '🟢' : '⚪'}</span>
+                  <span>{pushEnabled ? 'Notifications Enabled' : 'Notifications Not Enabled'}</span>
+                </span>
+              </div>
+            </div>
+
+            <p className="text-xs text-amber-300/80 bg-[#0d0907] p-3 rounded-xl border border-amber-900/30">
+              {pushEnabled
+                ? '🟢 This device is registered to receive new-order alerts even when the admin dashboard is not currently open, where supported by the device/browser.'
+                : '⚪ This device is not currently registered for instant push alerts. Click "Enable Order Notifications" below to activate.'}
+            </p>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pt-2">
+              <button
+                type="button"
+                onClick={handleTogglePush}
+                disabled={pushLoading}
+                className={`px-6 py-3.5 rounded-xl font-sans text-xs font-bold uppercase tracking-wider shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  pushEnabled
+                    ? 'bg-red-950/80 border border-red-800 text-red-300 hover:bg-red-900/80'
+                    : 'bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-amber-950'
+                }`}
+              >
+                <Bell className="w-4 h-4" />
+                <span>
+                  {pushLoading
+                    ? 'Processing...'
+                    : pushEnabled
+                    ? 'Disable Notifications'
+                    : '🔔 Enable Order Notifications'}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSendTest}
+                disabled={testLoading || !pushEnabled}
+                className="px-5 py-3.5 rounded-xl border border-amber-800/50 bg-[#120c09] hover:bg-amber-950/40 text-amber-300 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>🧪</span>
+                <span>{testLoading ? 'Sending Test...' : 'Send Test Notification'}</span>
+              </button>
+            </div>
+
+            {/* Sub-Section: Registered Admin Devices */}
+            <div className="pt-4 border-t border-amber-900/30 space-y-3">
+              <h4 className="text-xs font-bold text-amber-300 uppercase tracking-wider">
+                REGISTERED ADMIN DEVICES ({registeredDevices.length})
+              </h4>
+
+              {registeredDevices.length === 0 ? (
+                <div className="text-xs text-amber-400/50 italic p-3 bg-[#0d0907] rounded-xl border border-amber-900/20">
+                  No active push devices registered for your admin account.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {registeredDevices.map((dev) => {
+                    const parsed = parseDeviceName(dev.userAgent);
+                    return (
+                      <div
+                        key={dev.id}
+                        className="p-3.5 bg-[#0d0907] border border-amber-900/30 rounded-xl flex items-center justify-between gap-3 text-xs"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="text-xl">{parsed.icon}</span>
+                          <div className="truncate">
+                            <span className="font-bold text-amber-100 block truncate">
+                              {parsed.name}
+                            </span>
+                            <span className="text-[10px] text-amber-400/60 block">
+                              Registered: {new Date(dev.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          {dev.isCurrentDevice && (
+                            <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-emerald-950 text-emerald-400 border border-emerald-800">
+                              Current
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveDevice(dev.id)}
+                            className="p-1.5 rounded-lg bg-red-950/60 border border-red-800/40 text-red-300 hover:bg-red-900/60 transition-colors cursor-pointer"
+                            title="Remove device subscription"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* SECTION 2: SYSTEM / SOUND NOTIFICATIONS */}
+          <div className="bg-[#18110e] border border-amber-900/40 rounded-2xl p-6 shadow-xl space-y-4">
+            <h3 className="font-bebas text-xl tracking-wider text-amber-100 uppercase border-b border-amber-900/30 pb-2">
+              SYSTEM / SOUND NOTIFICATIONS
+            </h3>
+            <p className="text-xs text-amber-200/70">
+              In-browser audio chimes for new incoming orders on the active Admin Orders page are enabled by default.
+            </p>
+          </div>
+
+          {/* SECTION 3: WHATSAPP NOTIFICATIONS */}
+          <div className="bg-[#18110e] border border-amber-900/40 rounded-2xl p-6 shadow-xl space-y-4">
+            <h3 className="font-bebas text-xl tracking-wider text-amber-100 uppercase border-b border-amber-900/30 pb-2">
+              WHATSAPP NOTIFICATIONS
+            </h3>
+            <p className="text-xs text-amber-200/70">
+              Instant customer WhatsApp confirmation links are generated automatically upon order placement.
+            </p>
+          </div>
         </div>
       )}
 
