@@ -47,6 +47,30 @@ export default function AdminSettingsPage() {
   const [registeredDevices, setRegisteredDevices] = useState<any[]>([]);
   const [testLoading, setTestLoading] = useState(false);
 
+  // Live Diagnostic State
+  const [diag, setDiag] = useState({
+    origin: typeof window !== 'undefined' ? window.location.origin : '',
+    notificationPermission: typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'unsupported',
+    swSupported: typeof window !== 'undefined' && 'serviceWorker' in navigator,
+    swRegistrationExists: false,
+    swActive: false,
+    swScope: 'None',
+    pushManagerExists: typeof window !== 'undefined' && 'PushManager' in window,
+    existingSubscription: false,
+    vapidKeyExists: !!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+    vapidKeyLength: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.length || 0,
+    lastErrorName: 'None',
+    lastErrorMessage: 'None',
+    postStatus: 'Not called',
+    getStatus: 'Not called',
+  });
+  const [diagLogs, setDiagLogs] = useState<string[]>([]);
+
+  const addDiagLog = (msg: string) => {
+    const time = new Date().toLocaleTimeString();
+    setDiagLogs((prev) => [`[${time}] ${msg}`, ...prev.slice(0, 49)]);
+  };
+
   // Password Change state
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -80,7 +104,7 @@ export default function AdminSettingsPage() {
     try {
       let reg = await navigator.serviceWorker.getRegistration('/sw.js').catch(() => null);
       if (!reg) {
-        console.log('[PWA DIAGNOSTIC] Registering /sw.js...');
+        addDiagLog('Registering /sw.js...');
         reg = await navigator.serviceWorker.register('/sw.js');
       }
       const readyReg = await Promise.race([
@@ -88,8 +112,8 @@ export default function AdminSettingsPage() {
         new Promise<ServiceWorkerRegistration>((res) => setTimeout(() => res(reg!), 3000)),
       ]);
       return readyReg || reg;
-    } catch (err) {
-      console.warn('[PWA DIAGNOSTIC] Error obtaining service worker registration:', err);
+    } catch (err: any) {
+      addDiagLog(`Error obtaining service worker registration: ${err.message || err}`);
       return null;
     }
   };
@@ -107,25 +131,42 @@ export default function AdminSettingsPage() {
 
   const fetchDevices = async () => {
     try {
-      if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
-      console.log('[PWA DIAGNOSTIC] fetchDevices started. Notification.permission:', Notification.permission);
+      if (typeof window === 'undefined') return;
+      const currentPerm = typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'unsupported';
+      addDiagLog(`fetchDevices() started. Origin: ${window.location.origin}, Notification.permission = "${currentPerm}"`);
       
       const reg = await getServiceWorkerRegistration();
       const sub = reg && reg.pushManager ? await reg.pushManager.getSubscription().catch(() => null) : null;
       const endpoint = sub ? sub.endpoint : '';
-      console.log('[PWA DIAGNOSTIC] Current SW subscription present:', !!sub);
+
+      setDiag((prev) => ({
+        ...prev,
+        origin: window.location.origin,
+        notificationPermission: currentPerm,
+        swSupported: 'serviceWorker' in navigator,
+        swRegistrationExists: !!reg,
+        swActive: !!reg?.active,
+        swScope: reg?.scope || 'None',
+        pushManagerExists: 'PushManager' in window,
+        existingSubscription: !!sub,
+        vapidKeyExists: !!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+        vapidKeyLength: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.length || 0,
+      }));
 
       const res = await fetch(`/api/admin/push-subscriptions${endpoint ? `?endpoint=${encodeURIComponent(endpoint)}` : ''}`);
-      console.log('[PWA DIAGNOSTIC] GET /api/admin/push-subscriptions status:', res.status);
+      const statusText = `${res.status} ${res.statusText}`;
+      addDiagLog(`GET /api/admin/push-subscriptions response: ${statusText}`);
+
+      setDiag((prev) => ({ ...prev, getStatus: statusText }));
       const data = await res.json();
 
       if (data.devices) {
         setRegisteredDevices(data.devices);
       }
       setPushEnabled(!!data.active);
-      console.log('[PWA DIAGNOSTIC] Push enabled state set to:', !!data.active, 'Device count:', data.devices?.length || 0);
-    } catch (err) {
-      console.error('[PWA DIAGNOSTIC] Failed to fetch registered devices:', err);
+      addDiagLog(`Push active status: ${!!data.active}, Admin device count: ${data.devices?.length || 0}`);
+    } catch (err: any) {
+      addDiagLog(`fetchDevices() error: ${err.message || err}`);
     }
   };
 
@@ -139,14 +180,15 @@ export default function AdminSettingsPage() {
       const reg = await getServiceWorkerRegistration();
       const sub = reg && reg.pushManager ? await reg.pushManager.getSubscription().catch(() => null) : null;
 
-      console.log('[PWA DIAGNOSTIC] Sending test push notification request...');
+      addDiagLog('Sending POST /api/admin/push-subscriptions/test...');
       const res = await fetch('/api/admin/push-subscriptions/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ endpoint: sub ? sub.endpoint : undefined }),
       });
 
-      console.log('[PWA DIAGNOSTIC] Test notification API status:', res.status);
+      const statusText = `${res.status} ${res.statusText}`;
+      addDiagLog(`Test notification API response: ${statusText}`);
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || 'Failed to send test notification');
@@ -154,7 +196,7 @@ export default function AdminSettingsPage() {
 
       toast.success('🔔 Test notification sent! Check your device notifications.');
     } catch (err: any) {
-      console.error('[PWA DIAGNOSTIC] Test notification error:', err);
+      addDiagLog(`Test notification error: ${err.message || err}`);
       toast.error(err.message || 'Failed to send test notification');
     } finally {
       setTestLoading(false);
@@ -163,7 +205,7 @@ export default function AdminSettingsPage() {
 
   const handleRemoveDevice = async (id: string) => {
     try {
-      console.log('[PWA DIAGNOSTIC] Removing device ID:', id);
+      addDiagLog(`Removing device ID: ${id}`);
       const res = await fetch('/api/admin/push-subscriptions', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
@@ -176,33 +218,35 @@ export default function AdminSettingsPage() {
       toast.info('Device subscription removed.');
       fetchDevices();
     } catch (err: any) {
+      addDiagLog(`Remove device error: ${err.message || err}`);
       toast.error(err.message || 'Failed to remove device');
     }
   };
 
   const handleTogglePush = async () => {
     setPushLoading(true);
+    setDiag((prev) => ({ ...prev, lastErrorName: 'None', lastErrorMessage: 'None' }));
     try {
-      console.log('[PWA DIAGNOSTIC] handleTogglePush triggered. Current pushEnabled:', pushEnabled);
+      const currentOrigin = window.location.origin;
+      const beforePerm = Notification.permission;
+      addDiagLog(`[STEP 1] handleTogglePush started. Origin: ${currentOrigin}`);
+      addDiagLog(`[STEP 2] BEFORE requestPermission: Notification.permission = "${beforePerm}"`);
+
       if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
         throw new Error('Push notifications are not supported on this browser/device.');
       }
 
       const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-      console.log('[PWA DIAGNOSTIC] VAPID Public Key present:', !!vapidPublicKey);
+      addDiagLog(`[STEP 3] NEXT_PUBLIC_VAPID_PUBLIC_KEY present: ${!!vapidPublicKey} (length: ${vapidPublicKey?.length || 0})`);
 
       if (!vapidPublicKey) {
         throw new Error('VAPID Public Key is missing in environment variables.');
       }
 
-      const reg = await getServiceWorkerRegistration();
-      if (!reg) {
-        throw new Error('Service Worker registration is not active on this device.');
-      }
-
       if (pushEnabled) {
-        console.log('[PWA DIAGNOSTIC] Unsubscribing push notification...');
-        const sub = await reg.pushManager.getSubscription().catch(() => null);
+        addDiagLog('[STEP 4] Disabling notifications (Unsubscribing)...');
+        const reg = await getServiceWorkerRegistration();
+        const sub = reg ? await reg.pushManager.getSubscription().catch(() => null) : null;
         if (sub) {
           await sub.unsubscribe().catch(() => {});
           const res = await fetch('/api/admin/push-subscriptions', {
@@ -210,34 +254,45 @@ export default function AdminSettingsPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ endpoint: sub.endpoint }),
           });
-          console.log('[PWA DIAGNOSTIC] DELETE subscription API status:', res.status);
+          addDiagLog(`[STEP 5] DELETE subscription response: ${res.status}`);
         }
         setPushEnabled(false);
         toast.info('Admin push notifications disabled for this device.');
         fetchDevices();
       } else {
-        console.log('[PWA DIAGNOSTIC] Requesting Notification.requestPermission()...');
+        addDiagLog('[STEP 4] Calling Notification.requestPermission() directly from button click...');
         const permission = await Notification.requestPermission();
-        console.log('[PWA DIAGNOSTIC] Notification.requestPermission() result:', permission);
+        addDiagLog(`[STEP 5] Notification.requestPermission() returned: "${permission}"`);
+
+        setDiag((prev) => ({ ...prev, notificationPermission: permission }));
 
         if (permission !== 'granted') {
-          throw new Error('Notification permission was denied. Please allow notifications in site settings.');
+          throw new Error(`Notification permission returned "${permission}". Browser denied permission.`);
         }
 
+        addDiagLog('[STEP 6] Permission GRANTED! Obtaining Service Worker registration...');
+        const reg = await getServiceWorkerRegistration();
+        if (!reg) {
+          throw new Error('Service Worker registration is not active on this device.');
+        }
+
+        addDiagLog(`[STEP 7] ServiceWorker registration active: ${!!reg.active}, scope: ${reg.scope}`);
         const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
 
         let sub = await reg.pushManager.getSubscription().catch(() => null);
         if (!sub) {
-          console.log('[PWA DIAGNOSTIC] Calling pushManager.subscribe()...');
+          addDiagLog('[STEP 8] Calling pushManager.subscribe()...');
           sub = await reg.pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey: applicationServerKey as any,
           });
-          console.log('[PWA DIAGNOSTIC] pushManager.subscribe() succeeded.');
+          addDiagLog('[STEP 9] pushManager.subscribe() SUCCEEDED!');
+        } else {
+          addDiagLog('[STEP 9] Existing pushManager subscription found.');
         }
 
         const subJson = sub.toJSON();
-        console.log('[PWA DIAGNOSTIC] POST /api/admin/push-subscriptions sending subscription payload...');
+        addDiagLog('[STEP 10] Sending POST /api/admin/push-subscriptions...');
 
         const res = await fetch('/api/admin/push-subscriptions', {
           method: 'POST',
@@ -249,21 +304,26 @@ export default function AdminSettingsPage() {
           }),
         });
 
-        console.log('[PWA DIAGNOSTIC] POST subscription response status:', res.status);
-        const data = await res.json();
-        console.log('[PWA DIAGNOSTIC] POST subscription response JSON:', data);
+        const statusText = `${res.status} ${res.statusText}`;
+        addDiagLog(`[STEP 11] POST /api/admin/push-subscriptions response: ${statusText}`);
+        setDiag((prev) => ({ ...prev, postStatus: statusText }));
 
+        const data = await res.json();
         if (!res.ok) {
           throw new Error(data.error || 'Failed to save push subscription on server.');
         }
 
+        addDiagLog('[STEP 12] SUCCESS! Push subscription registered to admin account.');
         setPushEnabled(true);
         toast.success('🔔 Admin order push notifications enabled for this device!');
         fetchDevices();
       }
     } catch (err: any) {
-      console.error('[PWA DIAGNOSTIC] Push toggle error:', err);
-      toast.error(err.message || 'Failed to update push notification settings.');
+      const errName = err.name || 'Error';
+      const errMsg = err.message || String(err);
+      addDiagLog(`[ERROR] ${errName}: ${errMsg}`);
+      setDiag((prev) => ({ ...prev, lastErrorName: errName, lastErrorMessage: errMsg }));
+      toast.error(errMsg);
     } finally {
       setPushLoading(false);
     }
@@ -672,6 +732,111 @@ export default function AdminSettingsPage() {
                 <span>🧪</span>
                 <span>{testLoading ? 'Sending Test...' : 'Send Test Notification'}</span>
               </button>
+            </div>
+
+            {/* Live Diagnostic Dashboard */}
+            <div className="pt-4 border-t border-amber-900/30 space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <span>🛠️</span>
+                  <span>PWA PUSH DIAGNOSTICS (LIVE RUNTIME)</span>
+                </h4>
+                <button
+                  type="button"
+                  onClick={fetchDevices}
+                  className="text-[10px] text-amber-400/80 hover:text-amber-200 underline cursor-pointer"
+                >
+                  Refresh Diag
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 text-[11px]">
+                <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
+                  <span className="text-amber-200/50 block font-mono text-[9px] uppercase">1. Origin</span>
+                  <span className="text-amber-100 font-mono font-bold truncate block">{diag.origin || 'Unknown'}</span>
+                </div>
+
+                <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
+                  <span className="text-amber-200/50 block font-mono text-[9px] uppercase">2. Notification.permission</span>
+                  <span className={`font-mono font-bold ${diag.notificationPermission === 'granted' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                    {diag.notificationPermission}
+                  </span>
+                </div>
+
+                <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
+                  <span className="text-amber-200/50 block font-mono text-[9px] uppercase">3. SW Supported</span>
+                  <span className="text-amber-100 font-mono font-bold">{diag.swSupported ? 'YES' : 'NO'}</span>
+                </div>
+
+                <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
+                  <span className="text-amber-200/50 block font-mono text-[9px] uppercase">4. SW Reg Exists</span>
+                  <span className="text-amber-100 font-mono font-bold">{diag.swRegistrationExists ? 'YES' : 'NO'}</span>
+                </div>
+
+                <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
+                  <span className="text-amber-200/50 block font-mono text-[9px] uppercase">5. SW Active</span>
+                  <span className="text-amber-100 font-mono font-bold">{diag.swActive ? 'YES' : 'NO'}</span>
+                </div>
+
+                <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
+                  <span className="text-amber-200/50 block font-mono text-[9px] uppercase">6. SW Scope</span>
+                  <span className="text-amber-100 font-mono font-bold truncate block">{diag.swScope}</span>
+                </div>
+
+                <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
+                  <span className="text-amber-200/50 block font-mono text-[9px] uppercase">7. pushManager Exists</span>
+                  <span className="text-amber-100 font-mono font-bold">{diag.pushManagerExists ? 'YES' : 'NO'}</span>
+                </div>
+
+                <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
+                  <span className="text-amber-200/50 block font-mono text-[9px] uppercase">8. Existing Push Sub</span>
+                  <span className="text-amber-100 font-mono font-bold">{diag.existingSubscription ? 'YES' : 'NO'}</span>
+                </div>
+
+                <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
+                  <span className="text-amber-200/50 block font-mono text-[9px] uppercase">9. VAPID Public Key</span>
+                  <span className="text-amber-100 font-mono font-bold">
+                    {diag.vapidKeyExists ? `YES (${diag.vapidKeyLength} chars)` : 'MISSING'}
+                  </span>
+                </div>
+
+                <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
+                  <span className="text-amber-200/50 block font-mono text-[9px] uppercase">10. Last Error Name</span>
+                  <span className="text-amber-100 font-mono font-bold">{diag.lastErrorName}</span>
+                </div>
+
+                <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
+                  <span className="text-amber-200/50 block font-mono text-[9px] uppercase">11. Last Error Message</span>
+                  <span className="text-amber-100 font-mono font-bold truncate block">{diag.lastErrorMessage}</span>
+                </div>
+
+                <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
+                  <span className="text-amber-200/50 block font-mono text-[9px] uppercase">12. POST /push-subscriptions</span>
+                  <span className="text-amber-100 font-mono font-bold">{diag.postStatus}</span>
+                </div>
+
+                <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg sm:col-span-2 lg:col-span-3">
+                  <span className="text-amber-200/50 block font-mono text-[9px] uppercase">13. GET /push-subscriptions</span>
+                  <span className="text-amber-100 font-mono font-bold">{diag.getStatus}</span>
+                </div>
+              </div>
+
+              {/* Real-time Diagnostic Log Console */}
+              <div className="bg-[#050302] border border-amber-900/40 rounded-xl p-3 font-mono text-[10px] space-y-1 max-h-48 overflow-y-auto">
+                <div className="text-amber-400 font-bold border-b border-amber-900/40 pb-1 flex justify-between">
+                  <span>STEP-BY-STEP DIAGNOSTIC CONSOLE</span>
+                  <button type="button" onClick={() => setDiagLogs([])} className="hover:text-amber-200 cursor-pointer">Clear</button>
+                </div>
+                {diagLogs.length === 0 ? (
+                  <div className="text-amber-500/40 italic py-1">Click "Enable Order Notifications" to record step-by-step execution diagnostic logs.</div>
+                ) : (
+                  diagLogs.map((log, idx) => (
+                    <div key={idx} className={log.includes('ERROR') ? 'text-red-400 font-bold' : log.includes('SUCCESS') || log.includes('GRANTED') ? 'text-emerald-400 font-bold' : 'text-amber-200/80'}>
+                      {log}
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
 
             {/* Sub-Section: Registered Admin Devices */}
