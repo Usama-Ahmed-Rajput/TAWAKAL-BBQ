@@ -223,17 +223,39 @@ export default function AdminSettingsPage() {
     }
   };
 
+  const handleRefreshPermission = async () => {
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
+    const currentPerm = Notification.permission;
+    addDiagLog(`[REFRESH] Refreshing permission status. Current Notification.permission = "${currentPerm}"`);
+    setDiag((prev) => ({ ...prev, notificationPermission: currentPerm }));
+
+    if (currentPerm === 'granted') {
+      toast.info('Permission is GRANTED! Registering push notifications...');
+      fetchDevices();
+    } else if (currentPerm === 'denied') {
+      toast.error('Permission is still DENIED in Chrome settings. Please tap 🔒 icon in address bar to allow notifications.');
+    } else {
+      toast.info(`Permission status: ${currentPerm}`);
+    }
+  };
+
   const handleTogglePush = async () => {
     setPushLoading(true);
     setDiag((prev) => ({ ...prev, lastErrorName: 'None', lastErrorMessage: 'None' }));
     try {
       const currentOrigin = window.location.origin;
-      const beforePerm = Notification.permission;
+      const beforePerm = typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'unsupported';
       addDiagLog(`[STEP 1] handleTogglePush started. Origin: ${currentOrigin}`);
       addDiagLog(`[STEP 2] BEFORE requestPermission: Notification.permission = "${beforePerm}"`);
 
       if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
         throw new Error('Push notifications are not supported on this browser/device.');
+      }
+
+      // Handle explicitly denied state directly
+      if (beforePerm === 'denied') {
+        addDiagLog('[STEP 3 BLOCKED] Notification.permission is "denied". Chrome blocks prompt automatically.');
+        throw new Error('Notifications are blocked by Chrome. Tap the 🔒 icon next to the address bar -> Site Settings -> Notifications -> Allow, then tap Refresh Permission Status.');
       }
 
       const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
@@ -260,14 +282,18 @@ export default function AdminSettingsPage() {
         toast.info('Admin push notifications disabled for this device.');
         fetchDevices();
       } else {
-        addDiagLog('[STEP 4] Calling Notification.requestPermission() directly from button click...');
-        const permission = await Notification.requestPermission();
-        addDiagLog(`[STEP 5] Notification.requestPermission() returned: "${permission}"`);
-
-        setDiag((prev) => ({ ...prev, notificationPermission: permission }));
+        let permission = beforePerm;
+        if (permission !== 'granted') {
+          addDiagLog('[STEP 4] Calling Notification.requestPermission() directly from button click...');
+          permission = await Notification.requestPermission();
+          addDiagLog(`[STEP 5] Notification.requestPermission() returned: "${permission}"`);
+          setDiag((prev) => ({ ...prev, notificationPermission: permission }));
+        } else {
+          addDiagLog('[STEP 4] Notification.permission is already "granted". Continuing registration...');
+        }
 
         if (permission !== 'granted') {
-          throw new Error(`Notification permission returned "${permission}". Browser denied permission.`);
+          throw new Error(`Notification permission returned "${permission}". Notifications are blocked in Chrome site settings.`);
         }
 
         addDiagLog('[STEP 6] Permission GRANTED! Obtaining Service Worker registration...');
@@ -686,20 +712,61 @@ export default function AdminSettingsPage() {
                   className={`px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border flex items-center gap-1.5 ${
                     pushEnabled
                       ? 'bg-emerald-950/90 text-emerald-400 border-emerald-800'
+                      : diag.notificationPermission === 'denied'
+                      ? 'bg-red-950/90 text-red-300 border-red-800'
                       : 'bg-amber-950/90 text-amber-400 border-amber-800'
                   }`}
                 >
-                  <span>{pushEnabled ? '🟢' : '⚪'}</span>
-                  <span>{pushEnabled ? 'Notifications Enabled' : 'Notifications Not Enabled'}</span>
+                  <span>{pushEnabled ? '🟢' : diag.notificationPermission === 'denied' ? '🔴' : '⚪'}</span>
+                  <span>
+                    {pushEnabled
+                      ? 'Notifications Enabled & Active'
+                      : diag.notificationPermission === 'denied'
+                      ? 'Notifications Blocked by Chrome'
+                      : 'Notifications Not Enabled'}
+                  </span>
                 </span>
               </div>
             </div>
 
-            <p className="text-xs text-amber-300/80 bg-[#0d0907] p-3 rounded-xl border border-amber-900/30">
-              {pushEnabled
-                ? '🟢 This device is registered to receive new-order alerts even when the admin dashboard is not currently open, where supported by the device/browser.'
-                : '⚪ This device is not currently registered for instant push alerts. Click "Enable Order Notifications" below to activate.'}
-            </p>
+            {diag.notificationPermission === 'denied' ? (
+              <div className="p-4 bg-red-950/40 border border-red-900/60 rounded-xl text-xs space-y-3">
+                <div className="flex items-center space-x-2 text-red-300 font-bold text-sm">
+                  <span>🚫</span>
+                  <span>CHROME SITE NOTIFICATIONS ARE BLOCKED</span>
+                </div>
+                <p className="text-red-200/80 leading-relaxed text-[11px]">
+                  Chrome has saved a <strong className="text-white">"Denied"</strong> permission for <code className="bg-black/50 px-1.5 py-0.5 rounded text-amber-300">tawakal-bbq.vercel.app</code>. Browsers explicitly block websites from asking for permission programmatically once denied. You must manually change permission to <strong className="text-emerald-400 font-bold">Allow</strong> in Chrome settings.
+                </p>
+
+                <div className="bg-[#0b0705] p-3 rounded-lg border border-red-900/40 space-y-2 text-[11px]">
+                  <span className="font-bold text-amber-300 block">📱 How to Unblock on Android Chrome:</span>
+                  <ol className="list-decimal list-inside space-y-1 text-amber-200/90">
+                    <li>Tap the <strong className="text-white">🔒 (Lock)</strong> or <strong className="text-white">Tune</strong> icon in the address bar next to <code className="text-amber-300 font-mono">tawakal-bbq.vercel.app</code>.</li>
+                    <li>Tap <strong className="text-white">Permissions</strong> or <strong className="text-white">Site Settings</strong>.</li>
+                    <li>Find <strong className="text-white">Notifications</strong> and select <strong className="text-emerald-400 font-bold">Allow</strong>.</li>
+                    <li>Return here and tap <strong className="text-amber-300 font-bold">"Refresh Permission Status"</strong> below.</li>
+                  </ol>
+                </div>
+
+                <div className="pt-1 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleRefreshPermission}
+                    className="px-4 py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-amber-950 font-bold rounded-lg text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer shadow-lg"
+                  >
+                    <span>🔄</span>
+                    <span>Refresh Permission Status</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-amber-300/80 bg-[#0d0907] p-3 rounded-xl border border-amber-900/30">
+                {pushEnabled
+                  ? '🟢 This device is registered to receive new-order alerts even when the admin dashboard is not currently open, where supported by the device/browser.'
+                  : '⚪ This device is not currently registered for instant push alerts. Click "Enable Order Notifications" below to activate.'}
+              </p>
+            )}
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pt-2">
