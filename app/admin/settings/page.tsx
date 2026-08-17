@@ -64,11 +64,99 @@ export default function AdminSettingsPage() {
     postStatus: 'Not called',
     getStatus: 'Not called',
   });
+  const [deliveryDiag, setDeliveryDiag] = useState({
+    lastTestAttempt: 'None',
+    providerAccepted: 'N/A' as 'YES' | 'NO' | 'N/A',
+    providerStatusCode: 'None' as number | string,
+    lastErrorName: 'None',
+    lastErrorMessage: 'None',
+    lastPushTimestamp: 'None' as string | null,
+    successfulSends: 0,
+    failedSends: 0,
+    activeSubscriptionsCount: 0,
+    endpointHost: 'None',
+  });
+
+  const [swDiagnostics, setSwDiagnostics] = useState({
+    swVersion: 'Unknown',
+    pushCount: 0,
+    lastTimestamp: 'None',
+    lastPayload: 'None',
+    lastStatus: 'Not queried yet',
+    lastError: 'None',
+  });
+
+  const [localTestResult, setLocalTestResult] = useState<string>('Not tested yet');
+  const [swUpdating, setSwUpdating] = useState<boolean>(false);
   const [diagLogs, setDiagLogs] = useState<string[]>([]);
 
   const addDiagLog = (msg: string) => {
     const time = new Date().toLocaleTimeString();
     setDiagLogs((prev) => [`[${time}] ${msg}`, ...prev.slice(0, 49)]);
+  };
+
+  const fetchSwDiagnostics = async () => {
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      if (!reg || !reg.active) return;
+
+      const channel = new MessageChannel();
+      channel.port1.onmessage = (event) => {
+        if (event.data && event.data.type === 'SW_DIAGNOSTICS_RESPONSE') {
+          setSwDiagnostics(event.data.diagnostics);
+          addDiagLog(`SW Diagnostics received: ${event.data.diagnostics.swVersion}`);
+        }
+      };
+
+      reg.active.postMessage({ type: 'GET_SW_DIAGNOSTICS' }, [channel.port2]);
+    } catch (err: any) {
+      addDiagLog(`Failed to fetch SW diagnostics: ${err.message || err}`);
+    }
+  };
+
+  const handleLocalSWTest = async () => {
+    setLocalTestResult('Testing...');
+    try {
+      if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+        throw new Error('Service Worker is not supported in this browser.');
+      }
+      const registration = await navigator.serviceWorker.ready;
+      await registration.showNotification('🔔 Tawakal BBQ Local SW Test', {
+        body: 'If you see this, Android/Chrome notification display is working.',
+        icon: '/icon-192.png',
+        badge: '/icon-192.png',
+        tag: 'tawakal-local-test',
+        data: { url: '/admin/orders' },
+      });
+      setLocalTestResult('SUCCESS');
+      toast.success('Local SW notification test SUCCESS!');
+    } catch (err: any) {
+      const errStr = `${err.name || 'Error'}: ${err.message || String(err)}`;
+      setLocalTestResult(`FAILED (${errStr})`);
+      toast.error(`Local SW notification test failed: ${err.message || err}`);
+    }
+  };
+
+  const handleSwUpdateReload = async () => {
+    setSwUpdating(true);
+    addDiagLog('[SW UPDATE] Updating service worker and reloading...');
+    try {
+      if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+        const reg = await navigator.serviceWorker.getRegistration('/sw.js');
+        if (reg) {
+          await reg.update();
+          addDiagLog('[SW UPDATE] Registration updated successfully.');
+        }
+      }
+      toast.info('Updating Service Worker and reloading page...');
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (err: any) {
+      toast.error(`SW Update failed: ${err.message || err}`);
+      setSwUpdating(false);
+    }
   };
 
   // Password Change state
@@ -163,6 +251,9 @@ export default function AdminSettingsPage() {
       if (data.devices) {
         setRegisteredDevices(data.devices);
       }
+      if (data.deliveryDiagnostics) {
+        setDeliveryDiag(data.deliveryDiagnostics);
+      }
 
       // Self-healing: If local PushSubscription exists on browser BUT backend GET returned active === false, re-upsert payload!
       if (currentPerm === 'granted' && reg?.active && sub && !data.active) {
@@ -183,6 +274,7 @@ export default function AdminSettingsPage() {
           const verifyRes = await fetch(`/api/admin/push-subscriptions?endpoint=${encodeURIComponent(endpoint)}`);
           const verifyData = await verifyRes.json();
           if (verifyData.devices) setRegisteredDevices(verifyData.devices);
+          if (verifyData.deliveryDiagnostics) setDeliveryDiag(verifyData.deliveryDiagnostics);
           const isNowActive = verifyData.active;
           setPushEnabled(isNowActive);
           addDiagLog(`[SELF-HEALING] Re-verification result: ${isNowActive}`);
@@ -193,7 +285,8 @@ export default function AdminSettingsPage() {
       // Calculate ON state: ON only if Notification.permission === 'granted' AND SW is active AND sub exists AND GET API confirms active === true
       const isDeviceActive = currentPerm === 'granted' && !!reg?.active && !!sub && !!data.active;
       setPushEnabled(isDeviceActive);
-      addDiagLog(`Calculated device active status: ${isDeviceActive} (Perm: ${currentPerm}, SW Active: ${!!reg?.active}, Sub: ${!!sub}, API Active: ${!!data.active}), Total Admin Devices: ${data.devices?.length || 0}`);
+      // Request SW Diagnostics via postMessage
+      fetchSwDiagnostics();
     } catch (err: any) {
       addDiagLog(`fetchDevices() error: ${err.message || err}`);
       setPushEnabled(false);
@@ -218,16 +311,19 @@ export default function AdminSettingsPage() {
       });
 
       const statusText = `${res.status} ${res.statusText}`;
-      addDiagLog(`Test notification API response: ${statusText}`);
       const data = await res.json();
+      addDiagLog(`Test notification API response: ${statusText} - ${data.message || data.error || ''}`);
+
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to send test notification');
+        throw new Error(data.error || 'Web Push delivery failed');
       }
 
-      toast.success('🔔 Test notification sent! Check your device notifications.');
+      toast.success('🔔 Test push notification accepted by Web Push provider!');
+      await fetchDevices();
     } catch (err: any) {
       addDiagLog(`Test notification error: ${err.message || err}`);
       toast.error(err.message || 'Failed to send test notification');
+      await fetchDevices();
     } finally {
       setTestLoading(false);
     }
@@ -816,12 +912,12 @@ export default function AdminSettingsPage() {
             )}
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pt-2">
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
               <button
                 type="button"
                 onClick={handleTogglePush}
                 disabled={pushLoading}
-                className={`px-6 py-3.5 rounded-xl font-sans text-xs font-bold uppercase tracking-wider shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                className={`px-5 py-3 rounded-xl font-sans text-xs font-bold uppercase tracking-wider shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${
                   pushEnabled
                     ? 'bg-red-950/80 border border-red-800 text-red-300 hover:bg-red-900/80'
                     : 'bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-amber-950'
@@ -841,12 +937,43 @@ export default function AdminSettingsPage() {
                 type="button"
                 onClick={handleSendTest}
                 disabled={testLoading || !pushEnabled}
-                className="px-5 py-3.5 rounded-xl border border-amber-800/50 bg-[#120c09] hover:bg-amber-950/40 text-amber-300 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer"
+                className="px-4 py-3 rounded-xl border border-amber-800/50 bg-[#120c09] hover:bg-amber-950/40 text-amber-300 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer"
               >
                 <span>🧪</span>
-                <span>{testLoading ? 'Sending Test...' : 'Send Test Notification'}</span>
+                <span>{testLoading ? 'Sending...' : 'SERVER PUSH TEST'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleLocalSWTest}
+                className="px-4 py-3 rounded-xl border border-emerald-800/50 bg-[#06140e] hover:bg-emerald-950/60 text-emerald-300 text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
+              >
+                <span>📲</span>
+                <span>LOCAL SW TEST</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSwUpdateReload}
+                disabled={swUpdating}
+                className="px-4 py-3 rounded-xl border border-amber-900/60 bg-[#18110e] hover:bg-amber-950/80 text-amber-300 text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>🔄</span>
+                <span>{swUpdating ? 'Reloading...' : 'SW UPDATE / RELOAD'}</span>
               </button>
             </div>
+
+            {/* Local SW Test Result Banner */}
+            {localTestResult !== 'Not tested yet' && (
+              <div className={`p-3 rounded-xl border text-xs font-mono font-bold flex items-center justify-between gap-2 ${
+                localTestResult === 'SUCCESS'
+                  ? 'bg-emerald-950/40 border-emerald-800 text-emerald-300'
+                  : 'bg-red-950/40 border-red-800 text-red-300'
+              }`}>
+                <span>LOCAL SW NOTIFICATION DISPLAY TEST:</span>
+                <span>{localTestResult}</span>
+              </div>
+            )}
 
             {/* Live Diagnostic Dashboard */}
             <div className="pt-4 border-t border-amber-900/30 space-y-3">
@@ -950,6 +1077,96 @@ export default function AdminSettingsPage() {
                     </div>
                   ))
                 )}
+              </div>
+
+              {/* Server Web Push Delivery Diagnostics */}
+              <div className="pt-2 space-y-2">
+                <h5 className="text-[11px] font-bold text-amber-300/90 uppercase tracking-wider flex items-center gap-1.5">
+                  <span>📡</span>
+                  <span>SERVER WEB PUSH DELIVERY DIAGNOSTICS</span>
+                </h5>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 text-[11px]">
+                  <div className="p-2.5 bg-[#080504] border border-amber-900/30 rounded-lg">
+                    <span className="text-amber-200/50 block font-mono text-[9px] uppercase">Last Test Attempt</span>
+                    <span className="text-amber-100 font-mono font-bold truncate block">{deliveryDiag.lastTestAttempt}</span>
+                  </div>
+
+                  <div className="p-2.5 bg-[#080504] border border-amber-900/30 rounded-lg">
+                    <span className="text-amber-200/50 block font-mono text-[9px] uppercase">Provider Accepted</span>
+                    <span className={`font-mono font-bold ${deliveryDiag.providerAccepted === 'YES' ? 'text-emerald-400' : deliveryDiag.providerAccepted === 'NO' ? 'text-red-400' : 'text-amber-300'}`}>
+                      {deliveryDiag.providerAccepted}
+                    </span>
+                  </div>
+
+                  <div className="p-2.5 bg-[#080504] border border-amber-900/30 rounded-lg">
+                    <span className="text-amber-200/50 block font-mono text-[9px] uppercase">Provider Status Code</span>
+                    <span className="text-amber-100 font-mono font-bold">{deliveryDiag.providerStatusCode}</span>
+                  </div>
+
+                  <div className="p-2.5 bg-[#080504] border border-amber-900/30 rounded-lg">
+                    <span className="text-amber-200/50 block font-mono text-[9px] uppercase">Endpoint Host Only</span>
+                    <span className="text-amber-100 font-mono font-bold truncate block">{deliveryDiag.endpointHost || 'None'}</span>
+                  </div>
+
+                  <div className="p-2.5 bg-[#080504] border border-amber-900/30 rounded-lg">
+                    <span className="text-amber-200/50 block font-mono text-[9px] uppercase">Sends (Delivered / Failed)</span>
+                    <span className="text-amber-100 font-mono font-bold">{deliveryDiag.successfulSends} delivered / {deliveryDiag.failedSends} failed</span>
+                  </div>
+
+                  <div className="p-2.5 bg-[#080504] border border-amber-900/30 rounded-lg">
+                    <span className="text-amber-200/50 block font-mono text-[9px] uppercase">Active Subscriptions</span>
+                    <span className="text-amber-100 font-mono font-bold">{deliveryDiag.activeSubscriptionsCount}</span>
+                  </div>
+
+                  <div className="p-2.5 bg-[#080504] border border-amber-900/30 rounded-lg">
+                    <span className="text-amber-200/50 block font-mono text-[9px] uppercase">Last Error Name</span>
+                    <span className="text-amber-100 font-mono font-bold">{deliveryDiag.lastErrorName}</span>
+                  </div>
+
+                  <div className="p-2.5 bg-[#080504] border border-amber-900/30 rounded-lg sm:col-span-2">
+                    <span className="text-amber-200/50 block font-mono text-[9px] uppercase">Last Error Message</span>
+                    <span className="text-amber-100 font-mono font-bold truncate block">{deliveryDiag.lastErrorMessage}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Service Worker In-Memory Diagnostics (via postMessage) */}
+              <div className="pt-2 space-y-2">
+                <div className="flex items-center justify-between">
+                  <h5 className="text-[11px] font-bold text-amber-300/90 uppercase tracking-wider flex items-center gap-1.5">
+                    <span>⚡</span>
+                    <span>SERVICE WORKER PUSH DIAGNOSTICS (POSTMESSAGE)</span>
+                  </h5>
+                  <button type="button" onClick={fetchSwDiagnostics} className="text-[10px] text-amber-400/80 hover:text-amber-200 underline cursor-pointer">
+                    Query SW
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 text-[11px]">
+                  <div className="p-2.5 bg-[#050907] border border-emerald-900/30 rounded-lg">
+                    <span className="text-emerald-200/50 block font-mono text-[9px] uppercase">SW Version</span>
+                    <span className="text-emerald-300 font-mono font-bold">{swDiagnostics.swVersion}</span>
+                  </div>
+
+                  <div className="p-2.5 bg-[#050907] border border-emerald-900/30 rounded-lg">
+                    <span className="text-emerald-200/50 block font-mono text-[9px] uppercase">Push Received Count</span>
+                    <span className="text-emerald-300 font-mono font-bold">{swDiagnostics.pushCount}</span>
+                  </div>
+
+                  <div className="p-2.5 bg-[#050907] border border-emerald-900/30 rounded-lg">
+                    <span className="text-emerald-200/50 block font-mono text-[9px] uppercase">showNotification Status</span>
+                    <span className="text-emerald-300 font-mono font-bold">{swDiagnostics.lastStatus}</span>
+                  </div>
+
+                  <div className="p-2.5 bg-[#050907] border border-emerald-900/30 rounded-lg">
+                    <span className="text-emerald-200/50 block font-mono text-[9px] uppercase">Last Push Timestamp</span>
+                    <span className="text-emerald-300 font-mono font-bold">{swDiagnostics.lastTimestamp}</span>
+                  </div>
+
+                  <div className="p-2.5 bg-[#050907] border border-emerald-900/30 rounded-lg sm:col-span-2">
+                    <span className="text-emerald-200/50 block font-mono text-[9px] uppercase">Last Payload Received</span>
+                    <span className="text-emerald-300 font-mono font-bold truncate block">{swDiagnostics.lastPayload}</span>
+                  </div>
+                </div>
               </div>
             </div>
 

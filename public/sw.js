@@ -1,6 +1,17 @@
-const CACHE_NAME = 'tawakal-bbq-static-v1';
-const DYNAMIC_CACHE = 'tawakal-bbq-dynamic-v1';
+const CACHE_NAME = 'tawakal-bbq-static-v2';
+const DYNAMIC_CACHE = 'tawakal-bbq-dynamic-v2';
 const OFFLINE_URL = '/offline';
+const SW_VERSION = 'v1.3.0-push-debug';
+
+// Service Worker In-Memory Push Diagnostics
+let swPushDiagnostics = {
+  swVersion: SW_VERSION,
+  pushCount: 0,
+  lastTimestamp: 'None',
+  lastPayload: 'None',
+  lastStatus: 'No push received yet',
+  lastError: 'None',
+};
 
 // Static core assets to precache safely
 const PRECACHE_ASSETS = [
@@ -15,6 +26,7 @@ const PRECACHE_ASSETS = [
 
 // Install Event
 self.addEventListener('install', (event) => {
+  console.log(`[SW] Installing Service Worker ${SW_VERSION}...`);
   event.waitUntil(
     caches
       .open(CACHE_NAME)
@@ -25,6 +37,7 @@ self.addEventListener('install', (event) => {
 
 // Activate Event
 self.addEventListener('activate', (event) => {
+  console.log(`[SW] Activating Service Worker ${SW_VERSION}...`);
   event.waitUntil(
     caches
       .keys()
@@ -39,6 +52,18 @@ self.addEventListener('activate', (event) => {
       )
       .then(() => self.clients.claim())
   );
+});
+
+// Message Event Listener for SW Diagnostics
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'GET_SW_DIAGNOSTICS') {
+    if (event.ports && event.ports[0]) {
+      event.ports[0].postMessage({
+        type: 'SW_DIAGNOSTICS_RESPONSE',
+        diagnostics: swPushDiagnostics,
+      });
+    }
+  }
 });
 
 // Fetch Event
@@ -133,27 +158,50 @@ self.addEventListener('fetch', (event) => {
 
 // Push Event Listener for Admin Order Notifications
 self.addEventListener('push', (event) => {
-  if (!event.data) return;
+  const promise = (async () => {
+    let payload = {};
 
-  try {
-    const payload = event.data.json();
-    const title = payload.title || '🔔 New Order Received';
-    const options = {
-      body: payload.body || 'A new customer order has been placed.',
-      icon: payload.icon || '/icon-192.png',
-      badge: payload.badge || '/icon-192.png',
-      tag: payload.tag || 'new-order',
-      renotify: true,
-      data: {
-        url: payload.url || '/admin/orders',
-      },
-      vibrate: [200, 100, 200, 100, 200],
-    };
+    try {
+      if (event.data) {
+        try {
+          payload = event.data.json();
+        } catch {
+          payload = { body: event.data.text() };
+        }
+      }
 
-    event.waitUntil(self.registration.showNotification(title, options));
-  } catch (err) {
-    console.error('[SW] Error displaying push notification:', err);
-  }
+      const title = payload.title || '🔔 Tawakal BBQ';
+      const options = {
+        body: payload.body || 'New notification',
+        icon: payload.icon || '/icon-192.png',
+        badge: payload.badge || '/icon-192.png',
+        data: {
+          url: payload.url || '/admin/orders',
+        },
+        tag: payload.tag || `tawakal-${Date.now()}`,
+      };
+
+      console.log('[SW PUSH] Received push payload:', payload);
+      console.log('[SW PUSH] Showing notification...');
+
+      await self.registration.showNotification(title, options);
+
+      console.log('[SW PUSH] showNotification SUCCESS');
+
+      swPushDiagnostics.pushCount++;
+      swPushDiagnostics.lastTimestamp = new Date().toLocaleTimeString();
+      swPushDiagnostics.lastPayload = JSON.stringify(payload);
+      swPushDiagnostics.lastStatus = 'showNotification SUCCESS';
+      swPushDiagnostics.lastError = 'None';
+    } catch (error) {
+      console.error('[SW PUSH] FAILED:', error?.name, error?.message);
+      swPushDiagnostics.lastStatus = 'showNotification FAILED';
+      swPushDiagnostics.lastError = `${error?.name || 'Error'}: ${error?.message || String(error)}`;
+      throw error;
+    }
+  })();
+
+  event.waitUntil(promise);
 });
 
 // Notification Click Event Listener

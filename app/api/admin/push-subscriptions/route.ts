@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getAdminSession } from '@/lib/auth';
+import { getDeliveryDiagnostics } from '@/lib/push';
 
 export async function GET(req: Request) {
   try {
@@ -36,12 +37,16 @@ export async function GET(req: Request) {
       isCurrentDevice: endpoint ? sub.endpoint === endpoint : false,
     }));
 
-    console.log(`[SERVER PWA DIAGNOSTIC] Found ${userSubscriptions.length} subscriptions for admin ${session.id}. Active match: ${isCurrentActive}`);
+    const deliveryDiag = getDeliveryDiagnostics();
 
     return NextResponse.json({
       active: isCurrentActive,
       count: userSubscriptions.length,
       devices: safeDevices,
+      deliveryDiagnostics: {
+        ...deliveryDiag,
+        activeSubscriptionsCount: userSubscriptions.length,
+      },
     });
   } catch (error: any) {
     console.error('[SERVER PWA DIAGNOSTIC] GET failed:', error.message || error);
@@ -60,7 +65,6 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     const { endpoint, keys, userAgent } = body;
-    console.log('[SERVER PWA DIAGNOSTIC] Payload received. Valid keys:', !!(endpoint && keys && keys.p256dh && keys.auth));
 
     if (!endpoint || !keys || !keys.p256dh || !keys.auth) {
       return NextResponse.json({ error: 'Invalid push subscription payload' }, { status: 400 });
@@ -112,7 +116,6 @@ export async function DELETE(req: Request) {
           userId: session.id,
         },
       });
-      console.log(`[SERVER PWA DIAGNOSTIC] Deleted ${deleted.count} subscriptions by ID ${id}`);
       return NextResponse.json({ success: true, count: deleted.count });
     }
 
@@ -123,7 +126,6 @@ export async function DELETE(req: Request) {
           userId: session.id,
         },
       });
-      console.log(`[SERVER PWA DIAGNOSTIC] Deleted ${deleted.count} subscriptions by endpoint`);
       return NextResponse.json({ success: true, count: deleted.count });
     }
 
