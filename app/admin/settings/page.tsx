@@ -164,6 +164,32 @@ export default function AdminSettingsPage() {
         setRegisteredDevices(data.devices);
       }
 
+      // Self-healing: If local PushSubscription exists on browser BUT backend GET returned active === false, re-upsert payload!
+      if (currentPerm === 'granted' && reg?.active && sub && !data.active) {
+        addDiagLog('[SELF-HEALING] Local subscription exists but server returned inactive. Re-upserting subscription payload...');
+        const subJson = sub.toJSON();
+        const postRes = await fetch('/api/admin/push-subscriptions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            endpoint: sub.endpoint,
+            keys: subJson.keys,
+            userAgent: navigator.userAgent,
+          }),
+        });
+
+        if (postRes.ok) {
+          addDiagLog('[SELF-HEALING] Re-upsert succeeded. Verifying active status via GET...');
+          const verifyRes = await fetch(`/api/admin/push-subscriptions?endpoint=${encodeURIComponent(endpoint)}`);
+          const verifyData = await verifyRes.json();
+          if (verifyData.devices) setRegisteredDevices(verifyData.devices);
+          const isNowActive = verifyData.active;
+          setPushEnabled(isNowActive);
+          addDiagLog(`[SELF-HEALING] Re-verification result: ${isNowActive}`);
+          return;
+        }
+      }
+
       // Calculate ON state: ON only if Notification.permission === 'granted' AND SW is active AND sub exists AND GET API confirms active === true
       const isDeviceActive = currentPerm === 'granted' && !!reg?.active && !!sub && !!data.active;
       setPushEnabled(isDeviceActive);
@@ -227,6 +253,126 @@ export default function AdminSettingsPage() {
     }
   };
 
+  const executeRegistrationFlow = async () => {
+    setPushLoading(true);
+    setDiag((prev) => ({ ...prev, lastErrorName: 'None', lastErrorMessage: 'None' }));
+    try {
+      const currentOrigin = window.location.origin;
+      let permission = typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'unsupported';
+      addDiagLog(`[FLOW] Starting registration pipeline. Origin: ${currentOrigin}, Permission: "${permission}"`);
+
+      if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+        throw new Error('Push notifications are not supported on this browser/device.');
+      }
+
+      if (permission === 'denied') {
+        throw new Error('Chrome has blocked notifications for this site. Open Site Settings -> Notifications -> Allow, then return here.');
+      }
+
+      if (permission !== 'granted') {
+        addDiagLog('[FLOW] Calling Notification.requestPermission() directly from user action...');
+        permission = await Notification.requestPermission();
+        addDiagLog(`[FLOW] Notification.requestPermission() returned: "${permission}"`);
+        setDiag((prev) => ({ ...prev, notificationPermission: permission }));
+      } else {
+        addDiagLog('[FLOW] Notification.permission is already "granted". Continuing registration pipeline...');
+      }
+
+      if (permission !== 'granted') {
+        throw new Error(`Notification permission returned "${permission}". Notifications are blocked in Chrome site settings.`);
+      }
+
+      const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      addDiagLog(`[FLOW] NEXT_PUBLIC_VAPID_PUBLIC_KEY present: ${!!vapidPublicKey} (length: ${vapidPublicKey?.length || 0})`);
+
+      if (!vapidPublicKey) {
+        throw new Error('VAPID Public Key is missing in environment variables.');
+      }
+
+      addDiagLog('[FLOW] Obtaining Service Worker registration...');
+      const reg = await getServiceWorkerRegistration();
+      if (!reg) {
+        throw new Error('Service Worker registration is not active on this device.');
+      }
+
+      addDiagLog(`[FLOW] SW Active: ${!!reg.active}, scope: ${reg.scope}`);
+      const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
+
+      let sub = await reg.pushManager.getSubscription().catch(() => null);
+      if (!sub) {
+        addDiagLog('[FLOW] Calling pushManager.subscribe()...');
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: applicationServerKey as any,
+        });
+        addDiagLog('[FLOW] pushManager.subscribe() SUCCEEDED!');
+      } else {
+        addDiagLog('[FLOW] Existing pushManager subscription found.');
+      }
+
+      const subJson = sub.toJSON();
+      addDiagLog('[FLOW] Sending POST /api/admin/push-subscriptions...');
+
+      const res = await fetch('/api/admin/push-subscriptions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          endpoint: sub.endpoint,
+          keys: subJson.keys,
+          userAgent: navigator.userAgent,
+        }),
+      });
+
+      const statusText = `${res.status} ${res.statusText}`;
+      addDiagLog(`[FLOW] POST response: ${statusText}`);
+      setDiag((prev) => ({ ...prev, postStatus: statusText }));
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to save push subscription on server.');
+      }
+
+      addDiagLog('[FLOW] Verifying active device status via GET /api/admin/push-subscriptions...');
+      await fetchDevices();
+
+      toast.success('🔔 Admin order push notifications enabled for this device!');
+    } catch (err: any) {
+      const errName = err.name || 'Error';
+      const errMsg = err.message || String(err);
+      addDiagLog(`[FLOW ERROR] ${errName}: ${errMsg}`);
+      setDiag((prev) => ({ ...prev, lastErrorName: errName, lastErrorMessage: errMsg }));
+      toast.error(errMsg);
+      setPushEnabled(false);
+    } finally {
+      setPushLoading(false);
+    }
+  };
+
+  const executeDisableFlow = async () => {
+    setPushLoading(true);
+    addDiagLog('[FLOW] Disabling notifications (Unsubscribing)...');
+    try {
+      const reg = await getServiceWorkerRegistration();
+      const sub = reg ? await reg.pushManager.getSubscription().catch(() => null) : null;
+      if (sub) {
+        await sub.unsubscribe().catch(() => {});
+        const res = await fetch('/api/admin/push-subscriptions', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint: sub.endpoint }),
+        });
+        addDiagLog(`[FLOW] DELETE subscription response: ${res.status}`);
+      }
+      toast.info('Admin push notifications disabled for this device.');
+      await fetchDevices();
+    } catch (err: any) {
+      addDiagLog(`[FLOW ERROR] Disable error: ${err.message || err}`);
+      toast.error('Failed to disable push notifications.');
+    } finally {
+      setPushLoading(false);
+    }
+  };
+
   const handleRefreshPermission = async () => {
     if (typeof window === 'undefined' || !('Notification' in window)) return;
     const currentPerm = Notification.permission;
@@ -235,127 +381,21 @@ export default function AdminSettingsPage() {
 
     if (currentPerm === 'granted') {
       toast.info('Permission is GRANTED! Registering push notifications...');
-      fetchDevices();
+      await executeRegistrationFlow();
     } else if (currentPerm === 'denied') {
-      toast.error('Permission is still DENIED in Chrome settings. Please tap 🔒 icon in address bar to allow notifications.');
+      toast.error('Permission is still DENIED in Chrome settings. Please unblock in site settings.');
+      fetchDevices();
     } else {
       toast.info(`Permission status: ${currentPerm}`);
+      fetchDevices();
     }
   };
 
   const handleTogglePush = async () => {
-    setPushLoading(true);
-    setDiag((prev) => ({ ...prev, lastErrorName: 'None', lastErrorMessage: 'None' }));
-    try {
-      const currentOrigin = window.location.origin;
-      const beforePerm = typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'unsupported';
-      addDiagLog(`[STEP 1] handleTogglePush started. Origin: ${currentOrigin}`);
-      addDiagLog(`[STEP 2] BEFORE requestPermission: Notification.permission = "${beforePerm}"`);
-
-      if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
-        throw new Error('Push notifications are not supported on this browser/device.');
-      }
-
-      // Handle explicitly denied state directly
-      if (beforePerm === 'denied') {
-        addDiagLog('[STEP 3 BLOCKED] Notification.permission is "denied". Chrome blocks prompt automatically.');
-        throw new Error('Notifications are blocked by Chrome. Tap the 🔒 icon next to the address bar -> Site Settings -> Notifications -> Allow, then tap Refresh Permission Status.');
-      }
-
-      const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-      addDiagLog(`[STEP 3] NEXT_PUBLIC_VAPID_PUBLIC_KEY present: ${!!vapidPublicKey} (length: ${vapidPublicKey?.length || 0})`);
-
-      if (!vapidPublicKey) {
-        throw new Error('VAPID Public Key is missing in environment variables.');
-      }
-
-      if (pushEnabled) {
-        addDiagLog('[STEP 4] Disabling notifications (Unsubscribing)...');
-        const reg = await getServiceWorkerRegistration();
-        const sub = reg ? await reg.pushManager.getSubscription().catch(() => null) : null;
-        if (sub) {
-          await sub.unsubscribe().catch(() => {});
-          const res = await fetch('/api/admin/push-subscriptions', {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ endpoint: sub.endpoint }),
-          });
-          addDiagLog(`[STEP 5] DELETE subscription response: ${res.status}`);
-        }
-        setPushEnabled(false);
-        toast.info('Admin push notifications disabled for this device.');
-        fetchDevices();
-      } else {
-        let permission = beforePerm;
-        if (permission !== 'granted') {
-          addDiagLog('[STEP 4] Calling Notification.requestPermission() directly from button click...');
-          permission = await Notification.requestPermission();
-          addDiagLog(`[STEP 5] Notification.requestPermission() returned: "${permission}"`);
-          setDiag((prev) => ({ ...prev, notificationPermission: permission }));
-        } else {
-          addDiagLog('[STEP 4] Notification.permission is already "granted". Continuing registration...');
-        }
-
-        if (permission !== 'granted') {
-          throw new Error(`Notification permission returned "${permission}". Notifications are blocked in Chrome site settings.`);
-        }
-
-        addDiagLog('[STEP 6] Permission GRANTED! Obtaining Service Worker registration...');
-        const reg = await getServiceWorkerRegistration();
-        if (!reg) {
-          throw new Error('Service Worker registration is not active on this device.');
-        }
-
-        addDiagLog(`[STEP 7] ServiceWorker registration active: ${!!reg.active}, scope: ${reg.scope}`);
-        const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
-
-        let sub = await reg.pushManager.getSubscription().catch(() => null);
-        if (!sub) {
-          addDiagLog('[STEP 8] Calling pushManager.subscribe()...');
-          sub = await reg.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: applicationServerKey as any,
-          });
-          addDiagLog('[STEP 9] pushManager.subscribe() SUCCEEDED!');
-        } else {
-          addDiagLog('[STEP 9] Existing pushManager subscription found.');
-        }
-
-        const subJson = sub.toJSON();
-        addDiagLog('[STEP 10] Sending POST /api/admin/push-subscriptions...');
-
-        const res = await fetch('/api/admin/push-subscriptions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            endpoint: sub.endpoint,
-            keys: subJson.keys,
-            userAgent: navigator.userAgent,
-          }),
-        });
-
-        const statusText = `${res.status} ${res.statusText}`;
-        addDiagLog(`[STEP 11] POST /api/admin/push-subscriptions response: ${statusText}`);
-        setDiag((prev) => ({ ...prev, postStatus: statusText }));
-
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data.error || 'Failed to save push subscription on server.');
-        }
-
-        addDiagLog('[STEP 12] SUCCESS! Push subscription registered to admin account.');
-        setPushEnabled(true);
-        toast.success('🔔 Admin order push notifications enabled for this device!');
-        fetchDevices();
-      }
-    } catch (err: any) {
-      const errName = err.name || 'Error';
-      const errMsg = err.message || String(err);
-      addDiagLog(`[ERROR] ${errName}: ${errMsg}`);
-      setDiag((prev) => ({ ...prev, lastErrorName: errName, lastErrorMessage: errMsg }));
-      toast.error(errMsg);
-    } finally {
-      setPushLoading(false);
+    if (pushEnabled) {
+      await executeDisableFlow();
+    } else {
+      await executeRegistrationFlow();
     }
   };
 
@@ -753,6 +793,17 @@ export default function AdminSettingsPage() {
                   >
                     <span>🔄</span>
                     <span>Refresh Permission Status</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      toast.info('Tap the 🔒 (Lock) icon next to the address bar at the top of Chrome to change site permissions.');
+                    }}
+                    className="px-4 py-2.5 bg-[#18110e] border border-amber-800/60 text-amber-300 hover:bg-amber-950/60 font-bold rounded-lg text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer"
+                  >
+                    <span>⚙️</span>
+                    <span>Reset Site Permission Guide</span>
                   </button>
                 </div>
               </div>
