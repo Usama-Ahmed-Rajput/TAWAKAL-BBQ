@@ -5,6 +5,9 @@ import { CartProvider } from '@/context/CartContext';
 import { ToastProvider } from '@/context/ToastContext';
 import { CartDrawer } from '@/components/CartDrawer';
 import { StickyMobileCart } from '@/components/StickyMobileCart';
+import { PWARegister } from '@/components/PWARegister';
+import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
+import { OfflineBanner } from '@/components/OfflineBanner';
 
 const bebasNeue = Bebas_Neue({
   weight: '400',
@@ -44,6 +47,21 @@ export const metadata: Metadata = {
   title: 'Tawakal BBQ & Restaurant | Authentic Fire-Grilled BBQ & Online Ordering',
   description:
     'Order authentic Pakistani BBQ online at Tawakal Restaurant. Live charcoal tikkas, seekh kebabs, malai boti, rolls, fast food & premium deals.',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Tawakal BBQ',
+  },
+  icons: {
+    icon: [
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
   keywords: [
     'Tawakal BBQ',
     'Tawakal Restaurant',
@@ -89,9 +107,12 @@ export default function RootLayout({
       >
         <ToastProvider>
           <CartProvider>
+            <PWARegister />
+            <OfflineBanner />
             {children}
             <CartDrawer />
             <StickyMobileCart />
+            <PWAInstallPrompt />
           </CartProvider>
         </ToastProvider>
       </body>

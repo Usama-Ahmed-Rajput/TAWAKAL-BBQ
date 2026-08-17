@@ -15,8 +15,15 @@ export default function PublicReservationPage() {
   const [specialRequest, setSpecialRequest] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
+  const [offlineError, setOfflineError] = useState('');
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (typeof window !== 'undefined' && !navigator.onLine) {
+      setOfflineError('You are currently offline. Please reconnect to the internet to request a reservation.');
+      return;
+    }
+    setOfflineError('');
     setSubmitted(true);
   };
 
@@ -55,6 +62,11 @@ export default function PublicReservationPage() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="p-8 rounded-3xl bg-[#1A1815] border border-[#24201C] shadow-2xl space-y-6">
+            {offlineError && (
+              <div className="p-4 rounded-xl bg-[#C83B22]/10 border border-[#C83B22]/40 text-[#C83B22] text-xs font-sans font-semibold">
+                {offlineError}
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="font-sans text-xs font-semibold text-[#9F9589] block mb-1">

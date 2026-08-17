@@ -109,6 +109,11 @@ export default function PublicCheckoutPage() {
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (typeof window !== 'undefined' && !navigator.onLine) {
+      setError('You are currently offline. Please reconnect to the internet to place your order.');
+      return;
+    }
+
     if (!customerName || !customerPhone) {
       setError('Please fill in your name and phone number.');
       return;
