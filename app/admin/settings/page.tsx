@@ -74,22 +74,58 @@ export default function AdminSettingsPage() {
     return { icon, name: `${isMobile ? 'Mobile Device' : 'Desktop'} (${os} / ${browser})` };
   };
 
+  const getServiceWorkerRegistration = async (): Promise<ServiceWorkerRegistration | null> => {
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return null;
+
+    try {
+      let reg = await navigator.serviceWorker.getRegistration('/sw.js').catch(() => null);
+      if (!reg) {
+        console.log('[PWA DIAGNOSTIC] Registering /sw.js...');
+        reg = await navigator.serviceWorker.register('/sw.js');
+      }
+      const readyReg = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise<ServiceWorkerRegistration>((res) => setTimeout(() => res(reg!), 3000)),
+      ]);
+      return readyReg || reg;
+    } catch (err) {
+      console.warn('[PWA DIAGNOSTIC] Error obtaining service worker registration:', err);
+      return null;
+    }
+  };
+
+  const urlBase64ToUint8Array = (base64String: string): Uint8Array => {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  };
+
   const fetchDevices = async () => {
     try {
       if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
-      const reg = await navigator.serviceWorker.ready.catch(() => null);
-      const sub = reg ? await reg.pushManager.getSubscription() : null;
+      console.log('[PWA DIAGNOSTIC] fetchDevices started. Notification.permission:', Notification.permission);
+      
+      const reg = await getServiceWorkerRegistration();
+      const sub = reg && reg.pushManager ? await reg.pushManager.getSubscription().catch(() => null) : null;
       const endpoint = sub ? sub.endpoint : '';
+      console.log('[PWA DIAGNOSTIC] Current SW subscription present:', !!sub);
 
       const res = await fetch(`/api/admin/push-subscriptions${endpoint ? `?endpoint=${encodeURIComponent(endpoint)}` : ''}`);
+      console.log('[PWA DIAGNOSTIC] GET /api/admin/push-subscriptions status:', res.status);
       const data = await res.json();
 
       if (data.devices) {
         setRegisteredDevices(data.devices);
       }
       setPushEnabled(!!data.active);
+      console.log('[PWA DIAGNOSTIC] Push enabled state set to:', !!data.active, 'Device count:', data.devices?.length || 0);
     } catch (err) {
-      console.error('Failed to fetch registered devices:', err);
+      console.error('[PWA DIAGNOSTIC] Failed to fetch registered devices:', err);
     }
   };
 
@@ -100,15 +136,17 @@ export default function AdminSettingsPage() {
   const handleSendTest = async () => {
     setTestLoading(true);
     try {
-      const reg = await navigator.serviceWorker.ready.catch(() => null);
-      const sub = reg ? await reg.pushManager.getSubscription() : null;
+      const reg = await getServiceWorkerRegistration();
+      const sub = reg && reg.pushManager ? await reg.pushManager.getSubscription().catch(() => null) : null;
 
+      console.log('[PWA DIAGNOSTIC] Sending test push notification request...');
       const res = await fetch('/api/admin/push-subscriptions/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ endpoint: sub ? sub.endpoint : undefined }),
       });
 
+      console.log('[PWA DIAGNOSTIC] Test notification API status:', res.status);
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || 'Failed to send test notification');
@@ -116,6 +154,7 @@ export default function AdminSettingsPage() {
 
       toast.success('🔔 Test notification sent! Check your device notifications.');
     } catch (err: any) {
+      console.error('[PWA DIAGNOSTIC] Test notification error:', err);
       toast.error(err.message || 'Failed to send test notification');
     } finally {
       setTestLoading(false);
@@ -124,6 +163,7 @@ export default function AdminSettingsPage() {
 
   const handleRemoveDevice = async (id: string) => {
     try {
+      console.log('[PWA DIAGNOSTIC] Removing device ID:', id);
       const res = await fetch('/api/admin/push-subscriptions', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
@@ -143,55 +183,62 @@ export default function AdminSettingsPage() {
   const handleTogglePush = async () => {
     setPushLoading(true);
     try {
+      console.log('[PWA DIAGNOSTIC] handleTogglePush triggered. Current pushEnabled:', pushEnabled);
       if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
         throw new Error('Push notifications are not supported on this browser/device.');
       }
 
       const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      console.log('[PWA DIAGNOSTIC] VAPID Public Key present:', !!vapidPublicKey);
+
       if (!vapidPublicKey) {
         throw new Error('VAPID Public Key is missing in environment variables.');
       }
 
-      const reg = await navigator.serviceWorker.ready;
+      const reg = await getServiceWorkerRegistration();
+      if (!reg) {
+        throw new Error('Service Worker registration is not active on this device.');
+      }
 
       if (pushEnabled) {
-        // Disable Push
-        const sub = await reg.pushManager.getSubscription();
+        console.log('[PWA DIAGNOSTIC] Unsubscribing push notification...');
+        const sub = await reg.pushManager.getSubscription().catch(() => null);
         if (sub) {
-          await sub.unsubscribe();
-          await fetch('/api/admin/push-subscriptions', {
+          await sub.unsubscribe().catch(() => {});
+          const res = await fetch('/api/admin/push-subscriptions', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ endpoint: sub.endpoint }),
           });
+          console.log('[PWA DIAGNOSTIC] DELETE subscription API status:', res.status);
         }
         setPushEnabled(false);
         toast.info('Admin push notifications disabled for this device.');
         fetchDevices();
       } else {
-        // Enable Push
+        console.log('[PWA DIAGNOSTIC] Requesting Notification.requestPermission()...');
         const permission = await Notification.requestPermission();
+        console.log('[PWA DIAGNOSTIC] Notification.requestPermission() result:', permission);
+
         if (permission !== 'granted') {
-          throw new Error('Notification permission was denied.');
+          throw new Error('Notification permission was denied. Please allow notifications in site settings.');
         }
 
-        const padding = '='.repeat((4 - (vapidPublicKey.length % 4)) % 4);
-        const base64 = (vapidPublicKey + padding).replace(/-/g, '+').replace(/_/g, '/');
-        const rawData = window.atob(base64);
-        const outputArray = new Uint8Array(rawData.length);
-        for (let i = 0; i < rawData.length; ++i) {
-          outputArray[i] = rawData.charCodeAt(i);
-        }
+        const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
 
-        let sub = await reg.pushManager.getSubscription();
+        let sub = await reg.pushManager.getSubscription().catch(() => null);
         if (!sub) {
+          console.log('[PWA DIAGNOSTIC] Calling pushManager.subscribe()...');
           sub = await reg.pushManager.subscribe({
             userVisibleOnly: true,
-            applicationServerKey: outputArray,
+            applicationServerKey: applicationServerKey as any,
           });
+          console.log('[PWA DIAGNOSTIC] pushManager.subscribe() succeeded.');
         }
 
         const subJson = sub.toJSON();
+        console.log('[PWA DIAGNOSTIC] POST /api/admin/push-subscriptions sending subscription payload...');
+
         const res = await fetch('/api/admin/push-subscriptions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -202,7 +249,10 @@ export default function AdminSettingsPage() {
           }),
         });
 
+        console.log('[PWA DIAGNOSTIC] POST subscription response status:', res.status);
         const data = await res.json();
+        console.log('[PWA DIAGNOSTIC] POST subscription response JSON:', data);
+
         if (!res.ok) {
           throw new Error(data.error || 'Failed to save push subscription on server.');
         }
@@ -212,7 +262,7 @@ export default function AdminSettingsPage() {
         fetchDevices();
       }
     } catch (err: any) {
-      console.error('[PUSH TOGGLE ERROR]:', err);
+      console.error('[PWA DIAGNOSTIC] Push toggle error:', err);
       toast.error(err.message || 'Failed to update push notification settings.');
     } finally {
       setPushLoading(false);

@@ -5,6 +5,8 @@ import { getAdminSession } from '@/lib/auth';
 export async function GET(req: Request) {
   try {
     const session = await getAdminSession();
+    console.log('[SERVER PWA DIAGNOSTIC] GET /api/admin/push-subscriptions - Admin ID:', session?.id || 'UNAUTHENTICATED');
+
     if (!session) {
       return NextResponse.json({ error: 'UNAUTHORIZED: Admin login required' }, { status: 401 });
     }
@@ -34,12 +36,15 @@ export async function GET(req: Request) {
       isCurrentDevice: endpoint ? sub.endpoint === endpoint : false,
     }));
 
+    console.log(`[SERVER PWA DIAGNOSTIC] Found ${userSubscriptions.length} subscriptions for admin ${session.id}. Active match: ${isCurrentActive}`);
+
     return NextResponse.json({
       active: isCurrentActive,
       count: userSubscriptions.length,
       devices: safeDevices,
     });
   } catch (error: any) {
+    console.error('[SERVER PWA DIAGNOSTIC] GET failed:', error.message || error);
     return NextResponse.json({ error: 'Failed to fetch push subscriptions' }, { status: 500 });
   }
 }
@@ -47,12 +52,15 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const session = await getAdminSession();
+    console.log('[SERVER PWA DIAGNOSTIC] POST /api/admin/push-subscriptions - Admin ID:', session?.id || 'UNAUTHENTICATED');
+
     if (!session) {
       return NextResponse.json({ error: 'UNAUTHORIZED: Admin login required' }, { status: 401 });
     }
 
     const body = await req.json();
     const { endpoint, keys, userAgent } = body;
+    console.log('[SERVER PWA DIAGNOSTIC] Payload received. Valid keys:', !!(endpoint && keys && keys.p256dh && keys.auth));
 
     if (!endpoint || !keys || !keys.p256dh || !keys.auth) {
       return NextResponse.json({ error: 'Invalid push subscription payload' }, { status: 400 });
@@ -76,9 +84,11 @@ export async function POST(req: Request) {
       },
     });
 
+    console.log('[SERVER PWA DIAGNOSTIC] Prisma upsert succeeded. Subscription ID:', pushSubscription.id);
+
     return NextResponse.json({ success: true, id: pushSubscription.id });
   } catch (error: any) {
-    console.error('[ADMIN PUSH SUB ERROR]:', error);
+    console.error('[SERVER PWA DIAGNOSTIC] Prisma upsert failed:', error.message || error);
     return NextResponse.json({ error: 'Failed to save push subscription' }, { status: 500 });
   }
 }
@@ -86,6 +96,8 @@ export async function POST(req: Request) {
 export async function DELETE(req: Request) {
   try {
     const session = await getAdminSession();
+    console.log('[SERVER PWA DIAGNOSTIC] DELETE /api/admin/push-subscriptions - Admin ID:', session?.id || 'UNAUTHENTICATED');
+
     if (!session) {
       return NextResponse.json({ error: 'UNAUTHORIZED: Admin login required' }, { status: 401 });
     }
@@ -94,27 +106,30 @@ export async function DELETE(req: Request) {
     const { endpoint, id } = body;
 
     if (id) {
-      await prisma.pushSubscription.deleteMany({
+      const deleted = await prisma.pushSubscription.deleteMany({
         where: {
           id,
           userId: session.id,
         },
       });
-      return NextResponse.json({ success: true });
+      console.log(`[SERVER PWA DIAGNOSTIC] Deleted ${deleted.count} subscriptions by ID ${id}`);
+      return NextResponse.json({ success: true, count: deleted.count });
     }
 
     if (endpoint) {
-      await prisma.pushSubscription.deleteMany({
+      const deleted = await prisma.pushSubscription.deleteMany({
         where: {
           endpoint,
           userId: session.id,
         },
       });
-      return NextResponse.json({ success: true });
+      console.log(`[SERVER PWA DIAGNOSTIC] Deleted ${deleted.count} subscriptions by endpoint`);
+      return NextResponse.json({ success: true, count: deleted.count });
     }
 
     return NextResponse.json({ error: 'Subscription ID or endpoint is required to remove device' }, { status: 400 });
   } catch (error: any) {
+    console.error('[SERVER PWA DIAGNOSTIC] DELETE failed:', error.message || error);
     return NextResponse.json({ error: 'Failed to delete push subscription' }, { status: 500 });
   }
 }
