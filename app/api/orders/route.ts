@@ -83,7 +83,7 @@ export async function POST(req: Request) {
       }
     }
 
-    // 2. Fetch DB items & deals with fallback snapshot to ensure valid order items are never rejected
+    // 2. Fetch DB items & deals with strict DB price validation (Never trust client-provided prices)
     let calculatedSubtotal = 0;
     const validatedOrderItems: {
       productId?: string;
@@ -105,7 +105,7 @@ export async function POST(req: Request) {
           where: { id: dealIdCandidate },
         });
 
-        if (dbDeal) {
+        if (dbDeal && dbDeal.isActive !== false) {
           const itemPrice = dbDeal.dealPrice;
           calculatedSubtotal += itemPrice * qty;
           validatedOrderItems.push({
@@ -127,7 +127,7 @@ export async function POST(req: Request) {
             where: { id: productIdCandidate },
           });
 
-          if (dbProduct) {
+          if (dbProduct && dbProduct.isActive !== false && dbProduct.isAvailable !== false) {
             const itemPrice = dbProduct.price;
             calculatedSubtotal += itemPrice * qty;
             validatedOrderItems.push({
@@ -142,16 +142,12 @@ export async function POST(req: Request) {
         }
       }
 
-      // Fallback: If DB entity missing but cartItem has name and price
-      if (!matched && cartItem.name && typeof cartItem.price === 'number') {
-        const itemPrice = Math.max(0, cartItem.price);
-        calculatedSubtotal += itemPrice * qty;
-        validatedOrderItems.push({
-          name: String(cartItem.name),
-          price: itemPrice,
-          quantity: qty,
-          notes: cartItem.notes || undefined,
-        });
+      // If DB entity is missing or unavailable, reject the unverified item
+      if (!matched) {
+        return NextResponse.json(
+          { error: `Invalid or unavailable item in cart: ${cartItem.name || 'Unknown Item'}` },
+          { status: 400 }
+        );
       }
     }
 
@@ -163,9 +159,27 @@ export async function POST(req: Request) {
     const finalDeliveryFee = orderType === 'DELIVERY' ? (typeof clientDeliveryFee === 'number' ? clientDeliveryFee : 150) : 0;
     const totalAmount = Math.max(0, calculatedSubtotal - discountAmount + finalDeliveryFee);
 
-    // 4. Generate unique order number (e.g. TWK-84920)
-    const randomSuffix = Math.floor(10000 + Math.random() * 90000);
-    const orderNumber = `TWK-${randomSuffix}`;
+    // 4. Generate collision-safe unique order number (e.g. TWK-84920)
+    let orderNumber = '';
+    let isUnique = false;
+    let attempts = 0;
+
+    while (!isUnique && attempts < 10) {
+      attempts++;
+      const randomSuffix = Math.floor(10000 + Math.random() * 90000);
+      const candidate = `TWK-${randomSuffix}`;
+      const existingOrder = await prisma.order.findUnique({
+        where: { orderNumber: candidate },
+      });
+      if (!existingOrder) {
+        orderNumber = candidate;
+        isUnique = true;
+      }
+    }
+
+    if (!orderNumber) {
+      orderNumber = `TWK-${Date.now().toString().slice(-6)}`;
+    }
 
     // 5. Find or create Customer (Atomic Upsert)
     const customer = await prisma.customer.upsert({

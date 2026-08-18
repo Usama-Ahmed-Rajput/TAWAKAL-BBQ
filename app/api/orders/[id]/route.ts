@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { requireAdminPermission } from '@/lib/auth';
+import { getAdminSession, requireAdminPermission } from '@/lib/auth';
 
 const VALID_STATUSES = [
   'PENDING',
@@ -19,8 +19,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdminPermission('orders.view');
     const { id } = await params;
+    const session = await getAdminSession();
 
     const order = await prisma.order.findFirst({
       where: {
@@ -37,7 +37,47 @@ export async function GET(
       return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, order });
+    if (session) {
+      return NextResponse.json({ success: true, order });
+    }
+
+    // Customer-safe sanitized payload for post-checkout order confirmation
+    const sanitizedOrder = {
+      id: order.id,
+      orderNumber: order.orderNumber,
+      customerName: order.customerName,
+      customerPhone: order.customerPhone,
+      deliveryAddress: order.deliveryAddress,
+      deliveryArea: order.deliveryArea,
+      deliveryNotes: order.deliveryNotes,
+      orderType: order.orderType,
+      orderStatus: order.orderStatus,
+      paymentMethod: order.paymentMethod,
+      paymentStatus: order.paymentStatus,
+      subtotal: order.subtotal,
+      deliveryFee: order.deliveryFee,
+      discountAmount: order.discountAmount,
+      totalAmount: order.totalAmount,
+      createdAt: order.createdAt,
+      orderItems: order.orderItems.map((item) => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        variantName: item.variantName,
+        notes: item.notes,
+      })),
+      branch: order.branch
+        ? {
+            name: order.branch.name,
+            address: order.branch.address,
+            phone: order.branch.phone,
+            whatsapp: order.branch.whatsapp,
+          }
+        : null,
+    };
+
+    return NextResponse.json({ success: true, order: sanitizedOrder });
   } catch (error: any) {
     console.error('[API ORDER GET ERROR]:', error);
     return NextResponse.json({ success: false, error: 'Failed to fetch order' }, { status: 500 });

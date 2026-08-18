@@ -4,6 +4,7 @@ import { requireAdminPermission } from '@/lib/auth';
 
 export async function GET() {
   try {
+    await requireAdminPermission('settings.manage');
     const settings = await db.restaurantSetting.findMany();
     const settingsMap: Record<string, string> = {};
     settings.forEach((s: any) => {

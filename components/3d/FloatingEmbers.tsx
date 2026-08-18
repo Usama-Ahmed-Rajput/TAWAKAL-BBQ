@@ -40,8 +40,11 @@ export const FloatingEmbers: React.FC<FloatingEmbersProps> = ({ count = 90 }) =>
     return [pos, sca, spe, opa];
   }, [count]);
 
-  useFrame((state, delta) => {
+  const timeRef = useRef(0);
+
+  useFrame((_state, delta) => {
     if (!pointsRef.current) return;
+    timeRef.current += delta;
 
     const positionAttribute = pointsRef.current.geometry.attributes.position as THREE.BufferAttribute;
     const array = positionAttribute.array as Float32Array;
@@ -50,7 +53,7 @@ export const FloatingEmbers: React.FC<FloatingEmbersProps> = ({ count = 90 }) =>
       // Move Y up
       array[i * 3 + 1] += speeds[i * 3 + 1];
       // Move X sway
-      array[i * 3] += Math.sin(state.clock.elapsedTime * 1.5 + opacityPhase[i]) * 0.003;
+      array[i * 3] += Math.sin(timeRef.current * 1.5 + opacityPhase[i]) * 0.003;
 
       // Reset when particle goes above screen
       if (array[i * 3 + 1] > 6) {
