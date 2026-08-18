@@ -43,11 +43,11 @@ export default function HomePage() {
         {/* 2. Brand Introduction Story */}
         <BrandIntro />
 
-        {/* 3. From Fire To Flavor Scroll Controlled Stages Video */}
-        <FireToFlavor />
-
-        {/* 4. Signature Dishes Grid */}
+        {/* 3. Signature Dishes Grid */}
         <SignatureDishes onOrderDish={(dish) => handleOpenOrder(dish)} />
+
+        {/* 4. From Fire To Flavor Scroll Controlled Stages Video */}
+        <FireToFlavor />
 
         {/* 5. Spice Customizer */}
         <SpiceCustomizer />

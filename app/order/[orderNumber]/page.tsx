@@ -5,6 +5,7 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { CheckCircle2, Clock, MessageSquare, ShieldCheck, Flame, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { buildWhatsAppClickToChatUrl } from '@/lib/whatsapp-link';
 
 interface OrderItem {
   id: string;
@@ -53,27 +54,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ orderN
 
   const generateWhatsAppLink = () => {
     if (!order) return '#';
-    const itemsText = order.orderItems
-      .map((item) => `• ${item.name} x${item.quantity} (Rs. ${item.price * item.quantity})`)
-      .join('\n');
-
-    const text = `*TAWAKAL RESTAURANT — ONLINE ORDER*
-*Order Number:* ${order.orderNumber}
-*Customer:* ${order.customerName}
-*Phone:* ${order.customerPhone}
-*Type:* ${order.orderType}
-*Address:* ${order.deliveryAddress}
-
-*Order Items:*
-${itemsText}
-
-*Subtotal:* Rs. ${order.subtotal}
-*Delivery Fee:* Rs. ${order.deliveryFee}
-*TOTAL AMOUNT:* Rs. ${order.totalAmount}
-
-Please confirm my order. Thank you!`;
-
-    return `https://wa.me/923431265090?text=${encodeURIComponent(text)}`;
+    return buildWhatsAppClickToChatUrl(order);
   };
 
   const statuses = ['PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'COMPLETED'];
@@ -133,7 +114,7 @@ Please confirm my order. Thank you!`;
                   className="px-6 py-3 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-sans text-xs uppercase font-bold tracking-wider flex items-center gap-2 shadow-lg transition-transform active:scale-95 cursor-pointer"
                 >
                   <MessageSquare className="w-4 h-4 fill-white" />
-                  <span>ORDER VIA WHATSAPP</span>
+                  <span>📱 SEND ORDER ON WHATSAPP</span>
                 </a>
 
                 <Link

@@ -818,7 +818,7 @@ export default function AdminSettingsPage() {
             BRANCH MANAGEMENT
           </h3>
           <p className="text-xs text-amber-200/70 max-w-md mx-auto">
-            Configure Akhtar Colony and Azam Town branch outlets, addresses, phone numbers, and active status.
+            Configure Akhtar Colony branch outlet, address, phone numbers, and active status.
           </p>
           <a
             href="/admin/branches"

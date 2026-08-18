@@ -63,7 +63,27 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Customer details and cart items are required' }, { status: 400 });
     }
 
-    // 1. Fetch DB items & deals to calculate real authoritative subtotal
+    // 1. Resolve branch safely to prevent foreign key constraint P2003 failure
+    let validBranchId: string | null = null;
+    if (branchId && typeof branchId === 'string') {
+      const existingBranch = await prisma.branch.findUnique({
+        where: { id: branchId },
+      });
+      if (existingBranch) {
+        validBranchId = existingBranch.id;
+      }
+    }
+    if (!validBranchId) {
+      const defaultActiveBranch = await prisma.branch.findFirst({
+        where: { isActive: true },
+        orderBy: { createdAt: 'asc' },
+      });
+      if (defaultActiveBranch) {
+        validBranchId = defaultActiveBranch.id;
+      }
+    }
+
+    // 2. Fetch DB items & deals with fallback snapshot to ensure valid order items are never rejected
     let calculatedSubtotal = 0;
     const validatedOrderItems: {
       productId?: string;
@@ -75,37 +95,63 @@ export async function POST(req: Request) {
     }[] = [];
 
     for (const cartItem of items) {
-      if (cartItem.type === 'DEAL' && cartItem.dealId) {
+      const qty = typeof cartItem.quantity === 'number' && cartItem.quantity > 0 ? cartItem.quantity : 1;
+      let matched = false;
+
+      // Try matching Deal
+      const dealIdCandidate = cartItem.dealId || (cartItem.type === 'DEAL' || (typeof cartItem.id === 'string' && cartItem.id.startsWith('deal-')) ? cartItem.id?.replace('deal-', '') : undefined);
+      if (dealIdCandidate) {
         const dbDeal = await prisma.deal.findUnique({
-          where: { id: cartItem.dealId },
+          where: { id: dealIdCandidate },
         });
 
         if (dbDeal) {
           const itemPrice = dbDeal.dealPrice;
-          calculatedSubtotal += itemPrice * cartItem.quantity;
+          calculatedSubtotal += itemPrice * qty;
           validatedOrderItems.push({
             dealId: dbDeal.id,
             name: `${dbDeal.dealNumber ? dbDeal.dealNumber + ' — ' : ''}${dbDeal.title}`,
             price: itemPrice,
-            quantity: cartItem.quantity,
-            notes: 'Includes compulsory Raita',
+            quantity: qty,
+            notes: cartItem.includesCompulsoryRaita || cartItem.notes ? 'Includes compulsory Raita' : undefined,
           });
+          matched = true;
         }
-      } else if (cartItem.productId) {
-        const dbProduct = await prisma.menuItem.findUnique({
-          where: { id: cartItem.productId },
-        });
+      }
 
-        if (dbProduct) {
-          const itemPrice = dbProduct.price;
-          calculatedSubtotal += itemPrice * cartItem.quantity;
-          validatedOrderItems.push({
-            productId: dbProduct.id,
-            name: dbProduct.name,
-            price: itemPrice,
-            quantity: cartItem.quantity,
+      // Try matching MenuItem
+      if (!matched) {
+        const productIdCandidate = cartItem.productId || (typeof cartItem.id === 'string' && cartItem.id.startsWith('item-') ? cartItem.id.replace('item-', '') : cartItem.id);
+        if (productIdCandidate) {
+          const dbProduct = await prisma.menuItem.findUnique({
+            where: { id: productIdCandidate },
           });
+
+          if (dbProduct) {
+            const itemPrice = dbProduct.price;
+            calculatedSubtotal += itemPrice * qty;
+            validatedOrderItems.push({
+              productId: dbProduct.id,
+              name: dbProduct.name,
+              price: itemPrice,
+              quantity: qty,
+              notes: cartItem.notes || undefined,
+            });
+            matched = true;
+          }
         }
+      }
+
+      // Fallback: If DB entity missing but cartItem has name and price
+      if (!matched && cartItem.name && typeof cartItem.price === 'number') {
+        const itemPrice = Math.max(0, cartItem.price);
+        calculatedSubtotal += itemPrice * qty;
+        validatedOrderItems.push({
+          name: String(cartItem.name),
+          price: itemPrice,
+          quantity: qty,
+          notes: cartItem.notes || undefined,
+        });
       }
     }
 
@@ -113,33 +159,29 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'No valid products or deals in order' }, { status: 400 });
     }
 
-    // 2. Delivery fee calculation
+    // 3. Delivery fee calculation
     const finalDeliveryFee = orderType === 'DELIVERY' ? (typeof clientDeliveryFee === 'number' ? clientDeliveryFee : 150) : 0;
     const totalAmount = Math.max(0, calculatedSubtotal - discountAmount + finalDeliveryFee);
 
-    // 3. Generate unique order number (e.g. TWK-84920)
+    // 4. Generate unique order number (e.g. TWK-84920)
     const randomSuffix = Math.floor(10000 + Math.random() * 90000);
     const orderNumber = `TWK-${randomSuffix}`;
 
-    // 4. Find or create Customer
-    let customer = await prisma.customer.findUnique({
+    // 5. Find or create Customer (Atomic Upsert)
+    const customer = await prisma.customer.upsert({
       where: { phone: customerPhone },
+      update: { name: customerName },
+      create: {
+        name: customerName,
+        phone: customerPhone,
+      },
     });
 
-    if (!customer) {
-      customer = await prisma.customer.create({
-        data: {
-          name: customerName,
-          phone: customerPhone,
-        },
-      });
-    }
-
-    // 5. Create Order with snapshot values
+    // 6. Create Order with snapshot values
     const newOrder = await prisma.order.create({
       data: {
         orderNumber,
-        branchId: branchId || undefined,
+        branchId: validBranchId || undefined,
         customerId: customer.id,
         customerName,
         customerPhone,
@@ -157,12 +199,12 @@ export async function POST(req: Request) {
         totalAmount,
         orderItems: {
           create: validatedOrderItems.map((item) => ({
-            menuItemId: item.productId,
-            dealId: item.dealId,
+            menuItemId: item.productId || undefined,
+            dealId: item.dealId || undefined,
             name: item.name,
             price: item.price,
             quantity: item.quantity,
-            notes: item.notes,
+            notes: item.notes || undefined,
           })),
         },
       },
@@ -172,7 +214,7 @@ export async function POST(req: Request) {
       },
     });
 
-    // 6. Trigger Admin Push Notification asynchronously (Fail-safe, non-blocking)
+    // 7. Trigger Admin Push Notification asynchronously (Fail-safe, non-blocking)
     sendAdminOrderNotification({
       orderNumber: newOrder.orderNumber,
       totalAmount: newOrder.totalAmount,
@@ -185,8 +227,19 @@ export async function POST(req: Request) {
       orderNumber: newOrder.orderNumber,
       order: newOrder,
     });
-  } catch (error) {
-    console.error('Failed to create order:', error);
-    return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });
+  } catch (error: any) {
+    console.error('[ORDER CREATION ERROR DETAILED]:', {
+      message: error?.message || String(error),
+      code: error?.code,
+      meta: error?.meta,
+      stack: error?.stack,
+    });
+    return NextResponse.json(
+      {
+        error: 'Failed to create order',
+        details: error?.message || 'Server error during order processing',
+      },
+      { status: 500 }
+    );
   }
 }

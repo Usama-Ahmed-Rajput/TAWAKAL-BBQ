@@ -47,7 +47,7 @@ export default function PublicLocationPage() {
             RESTAURANT <span className="text-[#C83B22]">BRANCHES</span>
           </h1>
           <p className="font-serif italic text-sm text-[#9F9589] mt-3">
-            Tawakal Bar B.Q & Restaurant serves authentic live charcoal BBQ across Karachi from two prime branches in Akhtar Colony and Azam Town.
+            Tawakal Bar B.Q & Restaurant serves authentic live charcoal BBQ across Karachi from our main branch in Akhtar Colony.
           </p>
         </div>
 

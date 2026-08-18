@@ -6,15 +6,17 @@ async function main() {
   console.log('Current branches in DB count:', branches.length);
 
   const azamTowns = branches.filter(b => b.name.toLowerCase().includes('azam town') || b.slug.includes('azam'));
-  if (azamTowns.length > 1) {
-    console.log(`Found ${azamTowns.length} Azam Town branches. Keeping the first one and deleting duplicates...`);
-    const [keep, ...duplicates] = azamTowns;
-    for (const dup of duplicates) {
-      const orderCount = await db.order.count({ where: { branchId: dup.id } });
-      if (orderCount === 0) {
-        await db.branch.delete({ where: { id: dup.id } });
-        console.log(`Deleted duplicate Azam Town branch ID: ${dup.id}`);
-      }
+  for (const azam of azamTowns) {
+    const orderCount = await db.order.count({ where: { branchId: azam.id } });
+    if (orderCount === 0) {
+      await db.branch.delete({ where: { id: azam.id } });
+      console.log(`Deleted unused Azam Town branch ID: ${azam.id}`);
+    } else {
+      await db.branch.update({
+        where: { id: azam.id },
+        data: { isActive: false },
+      });
+      console.log(`Deactivated historical Azam Town branch ID: ${azam.id} (${orderCount} historical orders preserved).`);
     }
   }
 
@@ -28,7 +30,7 @@ async function main() {
         locationReference: 'R3QF+WGH, Akhtar Colony Main Rd, Sector C Akhtar Colony, Karachi, Pakistan',
         phone: '+92 343 1265090',
         whatsapp: '+92 343 1265090',
-        openingHours: '12:00 PM - 01:00 AM',
+        openingHours: '05:00 PM - 01:00 AM',
         isActive: true,
       },
     });

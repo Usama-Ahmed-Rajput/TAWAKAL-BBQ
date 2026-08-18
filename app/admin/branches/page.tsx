@@ -180,7 +180,7 @@ export default function AdminBranchesPage() {
             RESTAURANT BRANCHES MANAGEMENT
           </h2>
           <p className="text-xs text-amber-200/60 font-serif italic mt-0.5">
-            Configure Akhtar Colony and Azam Town branch details, addresses, phone lines & operating status.
+            Configure Akhtar Colony branch details, address, phone lines & operating status.
           </p>
         </div>
         <button
@@ -317,7 +317,7 @@ export default function AdminBranchesPage() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full bg-[#0d0907] border border-amber-900/50 rounded-xl p-2.5 text-xs text-amber-100"
-                  placeholder="e.g. Tawakal Restaurant — Azam Town"
+                  placeholder="e.g. Tawakal Restaurant — Main Branch"
                 />
               </div>
 
@@ -331,7 +331,7 @@ export default function AdminBranchesPage() {
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   className="w-full bg-[#0d0907] border border-amber-900/50 rounded-xl p-2.5 text-xs text-amber-100"
-                  placeholder="Main Road Azam Town, Opposite Commercial Market, Karachi, Pakistan"
+                  placeholder="Main Road, Sector C, Akhtar Colony, Karachi, Pakistan"
                 />
               </div>
 

@@ -125,7 +125,7 @@ async function main() {
       phone: '+92 348 9225866',
       whatsapp: '+92 348 2288166',
       mapUrl: 'https://maps.google.com/?q=Tawakal+BBQ+Azam+Town+Karachi',
-      isActive: true,
+      isActive: false,
       openingHours: '05:00 PM - 01:00 AM',
     },
     create: {
@@ -136,15 +136,15 @@ async function main() {
       phone: '+92 348 9225866',
       whatsapp: '+92 348 2288166',
       mapUrl: 'https://maps.google.com/?q=Tawakal+BBQ+Azam+Town+Karachi',
-      isActive: true,
-      openingHours: ':00 PM - 01:00 AM',
+      isActive: false,
+      openingHours: '05:00 PM - 01:00 AM',
     },
   });
 
   // 5. Branch Delivery Areas
   const deliveryAreas = [
     // Akhtar Colony Branch Areas
-    { branchId: akhtarBranch.id, name: 'Akhtar Colony (Sector A, B, C)', deliveryFee: 100, minOrder: 300, estimatedTime: '25-35 mins', sortOrder: 1 },
+    { branchId: akhtarBranch.id, name: 'Akhtar Colony', deliveryFee: 100, minOrder: 300, estimatedTime: '25-35 mins', sortOrder: 1 },
     { branchId: akhtarBranch.id, name: 'Kashmir Colony', deliveryFee: 120, minOrder: 400, estimatedTime: '30-40 mins', sortOrder: 2 },
     { branchId: akhtarBranch.id, name: 'Manzoor Colony', deliveryFee: 150, minOrder: 500, estimatedTime: '30-45 mins', sortOrder: 3 },
     { branchId: akhtarBranch.id, name: 'DHA / Defence (Phase 1-8)', deliveryFee: 200, minOrder: 600, estimatedTime: '35-50 mins', sortOrder: 4 },

@@ -6,6 +6,7 @@ import { Footer } from '@/components/Footer';
 import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
 import { ShoppingBag, Truck, Store, ArrowRight, ShieldCheck, MapPin, Tag } from 'lucide-react';
+import { launchCustomerWhatsApp } from '@/lib/whatsapp-link';
 
 interface Branch {
   id: string;
@@ -40,6 +41,7 @@ export default function PublicCheckoutPage() {
   const [customerPhone, setCustomerPhone] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [streetAddress, setStreetAddress] = useState('');
+  const [selectedSector, setSelectedSector] = useState('Sector A');
   const [houseFlatNo, setHouseFlatNo] = useState('');
   const [landmark, setLandmark] = useState('');
   const [deliveryNotes, setDeliveryNotes] = useState('');
@@ -121,12 +123,20 @@ export default function PublicCheckoutPage() {
 
     let fullAddress = `Self Pickup at ${selectedBranch?.name || 'Tawakal Restaurant'}`;
     if (orderType === 'DELIVERY') {
-      const areaName = currentArea ? currentArea.name : 'Karachi';
-      if (!streetAddress) {
-        setError('Please fill in your street / road address.');
-        return;
-      }
-      fullAddress = `${areaName}, ${streetAddress}${houseFlatNo ? `, House/Flat: ${houseFlatNo}` : ''}${landmark ? `, Landmark: ${landmark}` : ''}`;
+      const areaName = currentArea ? currentArea.name.replace(/\s*\([^)]*\)/g, '').trim() : 'Akhtar Colony';
+      const sectorVal = selectedSector || 'Sector A';
+
+      const addressParts = [
+        `Area: ${areaName}`,
+        `Sector: ${sectorVal}`,
+        houseFlatNo ? `House/Flat: ${houseFlatNo}` : '',
+        landmark ? `Landmark: ${landmark}` : '',
+        streetAddress ? `Street: ${streetAddress}` : '',
+        'City: Karachi',
+        'Country: Pakistan',
+      ].filter(Boolean);
+
+      fullAddress = addressParts.join(' | ');
     }
 
     setLoading(true);
@@ -143,6 +153,11 @@ export default function PublicCheckoutPage() {
           whatsapp: whatsapp || customerPhone,
           orderType,
           deliveryAddress: fullAddress,
+          deliveryArea: currentArea ? currentArea.name.replace(/\s*\([^)]*\)/g, '').trim() : 'Akhtar Colony',
+          sector: selectedSector || 'Sector A',
+          houseFlatNo: houseFlatNo || '',
+          landmark: landmark || '',
+          streetAddress: streetAddress || '',
           deliveryNotes,
           items: cart,
           couponCode: discountAmount > 0 ? couponCode : undefined,
@@ -153,11 +168,45 @@ export default function PublicCheckoutPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to place order.');
+        throw new Error(data.details ? `${data.error || 'Failed to place order'}: ${data.details}` : (data.error || 'Failed to place order.'));
       }
 
+      const orderPayload = data.order
+        ? {
+            ...data.order,
+            area: currentArea ? currentArea.name.replace(/\s*\([^)]*\)/g, '').trim() : 'Akhtar Colony',
+            sector: selectedSector || 'Sector A',
+            houseFlatNo: houseFlatNo || undefined,
+            landmark: landmark || undefined,
+          }
+        : {
+            orderNumber: data.orderNumber,
+            customerName,
+            customerPhone,
+            orderType,
+            deliveryAddress: fullAddress,
+            area: currentArea ? currentArea.name.replace(/\s*\([^)]*\)/g, '').trim() : 'Akhtar Colony',
+            sector: selectedSector || 'Sector A',
+            houseFlatNo: houseFlatNo || undefined,
+            landmark: landmark || undefined,
+            subtotal,
+            deliveryFee: currentDeliveryFee,
+            totalAmount: grandTotal,
+            paymentMethod: 'CASH_ON_DELIVERY',
+            orderItems: cart.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price })),
+            createdAt: new Date().toISOString(),
+          };
+
       clearCart();
-      router.push(`/order/${data.orderNumber}`);
+
+      // Launch WhatsApp click-to-chat with pre-filled message after DB order creation (Fail-safe)
+      try {
+        launchCustomerWhatsApp(orderPayload);
+      } catch (waErr) {
+        console.error('WhatsApp launch error:', waErr);
+      }
+
+      router.push(`/order/${data.orderNumber}?autoWa=1`);
     } catch (err: any) {
       setError(err.message || 'Something went wrong. Please try again.');
     } finally {
@@ -351,54 +400,71 @@ export default function PublicCheckoutPage() {
                   4. DELIVERY AREA & ADDRESS
                 </h3>
 
-                <div>
-                  <label className="font-sans text-xs font-semibold text-[#C69A45] block mb-1 uppercase tracking-wider">
-                    SELECT DELIVERY AREA ({selectedBranch?.name || 'Branch'}) *
-                  </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="font-sans text-xs font-semibold text-[#C69A45] block mb-1 uppercase tracking-wider">
+                      DELIVERY AREA *
+                    </label>
 
-                  {deliveryAreas.length === 0 ? (
-                    <div className="p-4 rounded-xl bg-[#11100E] border border-[#C83B22]/30 text-xs text-[#9F9589]">
-                      Delivery areas are currently being configured for this branch. Please choose Pickup or contact the restaurant directly.
-                    </div>
-                  ) : (
+                    {deliveryAreas.length === 0 ? (
+                      <div className="p-4 rounded-xl bg-[#11100E] border border-[#C83B22]/30 text-xs text-[#9F9589]">
+                        Delivery areas are currently being configured for this branch. Please choose Pickup or contact the restaurant directly.
+                      </div>
+                    ) : (
+                      <select
+                        value={selectedAreaId}
+                        onChange={(e) => setSelectedAreaId(e.target.value)}
+                        className="w-full bg-[#11100E] border border-[#C69A45]/40 rounded-xl px-4 py-3 text-sm text-[#F4EBDD] focus:outline-none focus:border-[#C69A45]"
+                      >
+                        {deliveryAreas.map((area) => (
+                          <option key={area.id} value={area.id}>
+                            {area.name.replace(/\s*\([^)]*\)/g, '').trim()} — Fee: Rs. {area.deliveryFee} (Est. {area.estimatedTime})
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="font-sans text-xs font-semibold text-[#C69A45] block mb-1 uppercase tracking-wider">
+                      SECTOR *
+                    </label>
                     <select
-                      value={selectedAreaId}
-                      onChange={(e) => setSelectedAreaId(e.target.value)}
+                      value={selectedSector}
+                      onChange={(e) => setSelectedSector(e.target.value)}
                       className="w-full bg-[#11100E] border border-[#C69A45]/40 rounded-xl px-4 py-3 text-sm text-[#F4EBDD] focus:outline-none focus:border-[#C69A45]"
                     >
-                      {deliveryAreas.map((area) => (
-                        <option key={area.id} value={area.id}>
-                          {area.name} — Fee: Rs. {area.deliveryFee} (Est. {area.estimatedTime})
-                        </option>
-                      ))}
+                      <option value="Sector A">Sector A</option>
+                      <option value="Sector B">Sector B</option>
+                      <option value="Sector C">Sector C</option>
                     </select>
-                  )}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="font-sans text-xs font-semibold text-[#9F9589] block mb-1">
-                      STREET / ROAD ADDRESS *
+                      HOUSE / FLAT NO. *
                     </label>
                     <input
                       type="text"
                       required
-                      value={streetAddress}
-                      onChange={(e) => setStreetAddress(e.target.value)}
-                      placeholder="e.g. Street 4, Main Rd"
+                      value={houseFlatNo}
+                      onChange={(e) => setHouseFlatNo(e.target.value)}
+                      placeholder="e.g. 9178"
                       className="w-full bg-[#11100E] border border-[#24201C] rounded-xl px-4 py-3 text-sm text-[#F4EBDD] focus:outline-none focus:border-[#C69A45]"
                     />
                   </div>
 
                   <div>
                     <label className="font-sans text-xs font-semibold text-[#9F9589] block mb-1">
-                      HOUSE / FLAT NUMBER
+                      LANDMARK / NEARBY PLACE
                     </label>
                     <input
                       type="text"
-                      value={houseFlatNo}
-                      onChange={(e) => setHouseFlatNo(e.target.value)}
-                      placeholder="e.g. House 25, Flat B-2"
+                      value={landmark}
+                      onChange={(e) => setLandmark(e.target.value)}
+                      placeholder="e.g. Jasyugsavgw / Near Mosque"
                       className="w-full bg-[#11100E] border border-[#24201C] rounded-xl px-4 py-3 text-sm text-[#F4EBDD] focus:outline-none focus:border-[#C69A45]"
                     />
                   </div>
@@ -406,13 +472,13 @@ export default function PublicCheckoutPage() {
 
                 <div>
                   <label className="font-sans text-xs font-semibold text-[#9F9589] block mb-1">
-                    LANDMARK / NEARBY PLACE
+                    STREET / ROAD ADDRESS (OPTIONAL)
                   </label>
                   <input
                     type="text"
-                    value={landmark}
-                    onChange={(e) => setLandmark(e.target.value)}
-                    placeholder="e.g. Opposite Saddique Medical Store / Near ABC Mosque"
+                    value={streetAddress}
+                    onChange={(e) => setStreetAddress(e.target.value)}
+                    placeholder="e.g. Street 5, Main Rd"
                     className="w-full bg-[#11100E] border border-[#24201C] rounded-xl px-4 py-3 text-sm text-[#F4EBDD] focus:outline-none focus:border-[#C69A45]"
                   />
                 </div>
