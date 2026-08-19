@@ -10,9 +10,10 @@ import Link from 'next/link';
 interface DishCardProps {
   dish: DishItem;
   onOrder?: (dishName: string) => void;
+  cardHrefOverride?: string;
 }
 
-export const DishCard: React.FC<DishCardProps> = ({ dish, onOrder }) => {
+export const DishCard: React.FC<DishCardProps> = ({ dish, onOrder, cardHrefOverride }) => {
   const { addItem, getItemQuantity, updateQuantity } = useCart();
   const [isAdded, setIsAdded] = useState(false);
 
@@ -20,6 +21,7 @@ export const DishCard: React.FC<DishCardProps> = ({ dish, onOrder }) => {
   const numericPrice = parseInt(dish.price.replace(/[^0-9]/g, ''), 10) || 350;
   const slug = dish.slug || (dish.id && !dish.id.startsWith('dish-') ? dish.id : dish.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'));
   const qtyInCart = getItemQuantity(slug, 'ITEM');
+  const targetHref = cardHrefOverride || `/menu/${slug}`;
 
   const handleAddToCart = () => {
     addItem({
@@ -47,7 +49,7 @@ export const DishCard: React.FC<DishCardProps> = ({ dish, onOrder }) => {
 
       <div>
         {/* Dish Image Header Container */}
-        <Link href={`/menu/${slug}`} className="relative block w-full overflow-hidden bg-[#11100E] border-b border-[var(--color-border)]">
+        <Link href={targetHref} className="relative block w-full overflow-hidden bg-[#11100E] border-b border-[var(--color-border)]">
           <img
             src={dish.image}
             alt={dish.name}
@@ -87,7 +89,7 @@ export const DishCard: React.FC<DishCardProps> = ({ dish, onOrder }) => {
           {/* Dish Titles */}
           <div className="mb-3">
             <div className="flex items-baseline justify-between gap-2">
-              <Link href={`/menu/${slug}`}>
+              <Link href={targetHref}>
                 <h3 className="font-serif text-2xl sm:text-3xl font-normal text-[var(--color-text)] group-hover:text-[var(--color-orange)] transition-colors leading-tight">
                   {dish.name}
                 </h3>

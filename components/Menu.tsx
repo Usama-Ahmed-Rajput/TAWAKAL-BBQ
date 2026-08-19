@@ -12,7 +12,7 @@ interface MenuProps {
 }
 
 export const Menu: React.FC<MenuProps> = ({ onOrderDish }) => {
-  const [activeCategory, setActiveCategory] = useState<string>('bbq');
+  const [activeCategory, setActiveCategory] = useState<string>('signature-bbq');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [categories, setCategories] = useState<any[]>(FALLBACK_CATEGORIES as any);
   const [menuItems, setMenuItems] = useState<any[]>(FALLBACK_ITEMS);
@@ -22,12 +22,18 @@ export const Menu: React.FC<MenuProps> = ({ onOrderDish }) => {
       .then((res) => res.json())
       .then((data) => {
         if (data.categories && data.categories.length > 0) {
-          setCategories(
-            data.categories.map((c: any) => ({
-              id: c.slug,
-              label: c.name,
-            }))
-          );
+          const fetchedCats = data.categories.map((c: any) => ({
+            id: c.slug,
+            label: c.name,
+          }));
+          setCategories(fetchedCats);
+
+          // Ensure active category matches available categories
+          const exists = fetchedCats.some((cat: any) => cat.id === activeCategory);
+          if (!exists) {
+            const defaultCat = fetchedCats.find((c: any) => c.id === 'signature-bbq')?.id || fetchedCats[0].id;
+            setActiveCategory(defaultCat);
+          }
         }
         if (data.items && data.items.length > 0) {
           setMenuItems(
@@ -38,7 +44,7 @@ export const Menu: React.FC<MenuProps> = ({ onOrderDish }) => {
               description: i.description || i.shortDescription,
               price: `Rs. ${i.price}`,
               rawPrice: i.price,
-              category: i.category?.slug || 'bbq',
+              category: i.category?.slug || 'signature-bbq',
               image: i.image,
               isPopular: i.isPopular,
               isChefSpecial: i.isFeatured,
@@ -54,7 +60,9 @@ export const Menu: React.FC<MenuProps> = ({ onOrderDish }) => {
 
   const filteredItems = menuItems.filter((item) => {
     const matchesCategory =
-      activeCategory === 'all' || item.category === activeCategory;
+      activeCategory === 'all' ||
+      item.category === activeCategory ||
+      (typeof item.category === 'object' && item.category?.slug === activeCategory);
     const matchesSearch =
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -128,7 +136,7 @@ export const Menu: React.FC<MenuProps> = ({ onOrderDish }) => {
                 <p className="font-food text-xl text-[#F4EBDD]">No menu items match your query.</p>
                 <button
                   onClick={() => {
-                    setActiveCategory('bbq');
+                    setActiveCategory(categories[0]?.id || 'signature-bbq');
                     setSearchQuery('');
                   }}
                   className="mt-4 font-sans text-xs font-bold text-[#C83B22] uppercase tracking-wider underline cursor-pointer"

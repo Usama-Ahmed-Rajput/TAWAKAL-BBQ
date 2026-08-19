@@ -7,11 +7,11 @@ import { BrandIntro } from '@/components/BrandIntro';
 import { FireToFlavor } from '@/components/FireToFlavor';
 import { SignatureDishes } from '@/components/SignatureDishes';
 import { SpiceCustomizer } from '@/components/SpiceCustomizer';
+import { HomeDeals } from '@/components/HomeDeals';
 import { SignaturePlatter } from '@/components/SignaturePlatter';
 import { Menu } from '@/components/Menu';
 import { RestaurantInterior } from '@/components/RestaurantInterior';
 import { Testimonials } from '@/components/Testimonials';
-import { Location } from '@/components/Location';
 import { FinalCTA } from '@/components/FinalCTA';
 import { Footer } from '@/components/Footer';
 import { OrderModal } from '@/components/OrderModal';
@@ -43,8 +43,8 @@ export default function HomePage() {
         {/* 2. Brand Introduction Story */}
         <BrandIntro />
 
-        {/* 3. Signature Dishes Grid */}
-        <SignatureDishes onOrderDish={(dish) => handleOpenOrder(dish)} />
+        {/* 3. Signature Dishes Grid (3 Featured Dishes + See More) */}
+        <SignatureDishes onOrderDish={(dish) => handleOpenOrder(dish)} limit={3} />
 
         {/* 4. From Fire To Flavor Scroll Controlled Stages Video */}
         <FireToFlavor />
@@ -52,20 +52,20 @@ export default function HomePage() {
         {/* 5. Spice Customizer */}
         <SpiceCustomizer />
 
-        {/* 6. Signature Platter Video Section */}
+        {/* 6. Featured Deals Section (3 Deals + See More) */}
+        <HomeDeals />
+
+        {/* 7. Signature Platter Video Section */}
         <SignaturePlatter />
 
-        {/* 7. Interactive Restaurant Menu */}
+        {/* 8. Interactive Restaurant Menu */}
         <Menu />
 
-        {/* 8. Restaurant Interior Atmosphere Video */}
+        {/* 9. Restaurant Interior Atmosphere Video */}
         <RestaurantInterior />
 
-        {/* 9. Guest Testimonials */}
+        {/* 10. Guest Testimonials */}
         <Testimonials />
-
-        {/* 10. Location and Directions */}
-        <Location />
 
         {/* 11. Final Dramatic CTA */}
         <FinalCTA

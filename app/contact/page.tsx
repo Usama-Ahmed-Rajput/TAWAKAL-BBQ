@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
+import { Location } from '@/components/Location';
 import { MapPin, Phone, MessageSquare, ExternalLink, Clock, Check } from 'lucide-react';
 
 export default function PublicContactPage() {
@@ -161,6 +162,9 @@ export default function PublicContactPage() {
           </div>
         </div>
       </main>
+
+      {/* FIND TAWAKAL BBQ Location Section */}
+      <Location />
 
       <Footer />
     </div>

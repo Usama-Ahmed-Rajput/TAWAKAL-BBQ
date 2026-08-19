@@ -5,11 +5,16 @@ import { SIGNATURE_DISHES } from '@/data/dishes';
 import { SectionHeading } from './ui/SectionHeading';
 import { DishCard } from './ui/DishCard';
 
+import Link from 'next/link';
+
 interface SignatureDishesProps {
   onOrderDish?: (dishName: string) => void;
+  limit?: number;
 }
 
-export const SignatureDishes: React.FC<SignatureDishesProps> = ({ onOrderDish }) => {
+export const SignatureDishes: React.FC<SignatureDishesProps> = ({ onOrderDish, limit = 3 }) => {
+  const displayedDishes = limit ? SIGNATURE_DISHES.slice(0, limit) : SIGNATURE_DISHES;
+
   return (
     <section
       id="signatures"
@@ -26,10 +31,21 @@ export const SignatureDishes: React.FC<SignatureDishesProps> = ({ onOrderDish })
         />
 
         <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {SIGNATURE_DISHES.map((dish) => (
-            <DishCard key={dish.id} dish={dish} onOrder={onOrderDish} />
+          {displayedDishes.map((dish) => (
+            <DishCard key={dish.id} dish={dish} onOrder={onOrderDish} cardHrefOverride="/menu" />
           ))}
         </div>
+
+        {limit && (
+          <div className="mt-12 text-center">
+            <Link
+              href="/menu"
+              className="inline-flex items-center justify-center px-8 py-4 rounded-xl bg-[#C83B22] hover:bg-[#D94A2D] text-[#F4EBDD] font-sans text-xs font-bold uppercase tracking-widest shadow-xl transition-all hover:scale-105 active:scale-95 border border-[#C69A45]/30"
+            >
+              SEE MORE SIGNATURE DISHES
+            </Link>
+          </div>
+        )}
       </div>
     </section>
   );
