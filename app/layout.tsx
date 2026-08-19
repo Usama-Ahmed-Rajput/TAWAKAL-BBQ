@@ -52,7 +52,7 @@ export const metadata: Metadata = {
     template: '%s | Tawakal BBQ',
   },
   description:
-    'Order authentic Pakistani BBQ online at Tawakal Restaurant in Karachi. Enjoy live charcoal tikkas, seekh kebabs, malai boti, rolls & premium deals with fast delivery.',
+    'Order authentic Pakistani BBQ online at Tawakal Restaurant in Karachi. Enjoy live charcoal tikkas, malai boti, roll & premium deals with fast delivery.',
   manifest: '/manifest.webmanifest',
   alternates: {
     canonical: '/',
