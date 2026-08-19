@@ -1,5 +1,14 @@
+import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import AdminSidebar from '@/components/admin/AdminSidebar';
+
+export const metadata: Metadata = {
+  title: 'Admin Control Center',
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const headersList = await headers();

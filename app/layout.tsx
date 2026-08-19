@@ -9,6 +9,8 @@ import { PWARegister } from '@/components/PWARegister';
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import { OfflineBanner } from '@/components/OfflineBanner';
 
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://tawakalbbq.com';
+
 const bebasNeue = Bebas_Neue({
   weight: '400',
   subsets: ['latin'],
@@ -44,10 +46,17 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'Tawakal BBQ & Restaurant | Authentic Fire-Grilled BBQ & Online Ordering',
+  metadataBase: new URL(BASE_URL),
+  title: {
+    default: 'Tawakal BBQ | Authentic Fire-Grilled BBQ in Karachi',
+    template: '%s | Tawakal BBQ',
+  },
   description:
-    'Order authentic Pakistani BBQ online at Tawakal Restaurant. Live charcoal tikkas, seekh kebabs, malai boti, rolls, fast food & premium deals.',
+    'Order authentic Pakistani BBQ online at Tawakal Restaurant in Karachi. Enjoy live charcoal tikkas, seekh kebabs, malai boti, rolls & premium deals with fast delivery.',
   manifest: '/manifest.webmanifest',
+  alternates: {
+    canonical: '/',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
@@ -65,29 +74,102 @@ export const metadata: Metadata = {
   keywords: [
     'Tawakal BBQ',
     'Tawakal Restaurant',
-    'Pakistani BBQ',
-    'Seekh Kebab',
+    'Pakistani BBQ Karachi',
+    'Akhtar Colony BBQ',
+    'Live Charcoal BBQ',
+    'Seekh Kebab Karachi',
     'Chicken Tikka',
     'Malai Boti',
-    'Fire Grilled',
-    'Akhtar Colony Karachi',
+    'Puri Paratha Rolls',
     'Online Food Delivery Karachi',
   ],
   authors: [{ name: 'Tawakal BBQ' }],
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
   openGraph: {
-    title: 'Tawakal BBQ & Restaurant | Authentic Fire-Grilled BBQ',
+    title: 'Tawakal BBQ | Authentic Fire-Grilled BBQ in Karachi',
     description:
-      'Where Fire Meets Flavor. Discover authentic charcoal-grilled delicacies, signature platters and order online.',
-    type: 'website',
-    locale: 'en_US',
+      'Order authentic Pakistani BBQ online at Tawakal Restaurant in Karachi. Enjoy live charcoal tikkas, seekh kebabs, malai boti, rolls & premium deals with fast delivery.',
+    url: BASE_URL,
     siteName: 'Tawakal BBQ',
+    locale: 'en_PK',
+    type: 'website',
+    images: [
+      {
+        url: '/logo.png',
+        width: 1200,
+        height: 630,
+        alt: 'Tawakal Bar B.Q & Restaurant Logo',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Tawakal BBQ & Restaurant',
+    title: 'Tawakal BBQ | Authentic Fire-Grilled BBQ in Karachi',
     description:
-      'Experience authentic Pakistani BBQ at Tawakal Restaurant — live charcoal-grilled flavors & fast online ordering.',
+      'Order authentic Pakistani BBQ online at Tawakal Restaurant in Karachi. Enjoy live charcoal tikkas, seekh kebabs, malai boti, rolls & premium deals.',
+    images: ['/logo.png'],
   },
+};
+
+const jsonLdSchema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Restaurant',
+      '@id': `${BASE_URL}/#restaurant`,
+      name: 'Tawakal Bar B.Q & Restaurant',
+      alternateName: 'Tawakal BBQ',
+      description:
+        'Authentic Pakistani live charcoal BBQ, seekh kebabs, chicken tikka, malai boti, crispy rolls, fast food and premium deals in Karachi.',
+      url: BASE_URL,
+      logo: `${BASE_URL}/logo.png`,
+      image: `${BASE_URL}/logo.png`,
+      telephone: '+92-343-1265090',
+      servesCuisine: ['Pakistani', 'BBQ', 'Fast Food'],
+      priceRange: '$$',
+      address: {
+        '@type': 'PostalAddress',
+        streetAddress: 'Plot No. 358, Street 5, Sector B, Main Road Akhter Colony, Opposite Saddique Medical Store',
+        addressLocality: 'Karachi',
+        addressRegion: 'Sindh',
+        postalCode: '75500',
+        addressCountry: 'PK',
+      },
+      geo: {
+        '@type': 'GeoCoordinates',
+        latitude: '24.8415',
+        longitude: '67.0782',
+      },
+      openingHoursSpecification: [
+        {
+          '@type': 'OpeningHoursSpecification',
+          dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+          opens: '12:00',
+          closes: '01:00',
+        },
+      ],
+      sameAs: ['https://wa.me/923485650906'],
+    },
+    {
+      '@type': 'WebSite',
+      '@id': `${BASE_URL}/#website`,
+      url: BASE_URL,
+      name: 'Tawakal BBQ',
+      publisher: {
+        '@id': `${BASE_URL}/#restaurant`,
+      },
+    },
+  ],
 };
 
 export default function RootLayout({
@@ -101,6 +183,12 @@ export default function RootLayout({
       className={`${bebasNeue.variable} ${dmSerifDisplay.variable} ${inter.variable} ${notoUrdu.variable} dark scroll-smooth`}
       suppressHydrationWarning
     >
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdSchema) }}
+        />
+      </head>
       <body
         className="bg-[#11100E] text-[#F4EBDD] font-sans antialiased selection:bg-[#C83B22] selection:text-white"
         suppressHydrationWarning
