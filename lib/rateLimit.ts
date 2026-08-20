@@ -11,6 +11,16 @@ export function checkRateLimit(
   windowMs: number = 60 * 1000
 ): { success: boolean; remaining: number; resetInMs: number } {
   const now = Date.now();
+
+  // Periodic automatic pruning to prevent unbounded memory growth
+  if (rateLimitMap.size > 1000) {
+    for (const [key, store] of rateLimitMap.entries()) {
+      if (now > store.resetAt) {
+        rateLimitMap.delete(key);
+      }
+    }
+  }
+
   const current = rateLimitMap.get(identifier);
 
   // Clean up expired entry
