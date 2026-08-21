@@ -46,6 +46,7 @@ export default function AdminSettingsPage() {
   const [pushLoading, setPushLoading] = useState(false);
   const [registeredDevices, setRegisteredDevices] = useState<any[]>([]);
   const [testLoading, setTestLoading] = useState(false);
+  const [showAdvancedDiag, setShowAdvancedDiag] = useState(false);
 
   // Live Diagnostic State
   const [diag, setDiag] = useState({
@@ -832,60 +833,269 @@ export default function AdminSettingsPage() {
       {/* Tab 3: Notifications Section */}
       {activeTab === 'notifications' && (
         <div className="space-y-6">
-          {/* SECTION 1: ORDER PUSH NOTIFICATIONS */}
+          {/* CARD 1: ORDER PUSH NOTIFICATIONS */}
           <div className="bg-[#18110e] border border-amber-900/40 rounded-2xl p-6 shadow-xl space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-amber-900/30">
-              <div className="flex items-center space-x-3">
-                <Bell className="w-6 h-6 text-amber-500 shrink-0" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center space-x-3.5">
+                <div className="w-11 h-11 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shrink-0 text-amber-400">
+                  <Bell className="w-5 h-5" />
+                </div>
                 <div>
                   <h3 className="font-bebas text-2xl tracking-wider text-amber-100 uppercase">
                     ORDER PUSH NOTIFICATIONS
                   </h3>
-                  <p className="text-xs text-amber-200/60 font-serif italic">
+                  <p className="text-xs text-amber-200/60">
                     Receive instant notifications on this device whenever a new customer order is placed.
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              {/* Status Badge & Toggle Switch */}
+              <div className="flex items-center gap-4 shrink-0 self-start sm:self-center">
                 <span
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border flex items-center gap-1.5 ${
+                  className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border flex items-center gap-1.5 ${
                     pushEnabled
                       ? 'bg-emerald-950/90 text-emerald-400 border-emerald-800'
                       : 'bg-red-950/90 text-red-300 border-red-800'
                   }`}
                 >
-                  <span>{pushEnabled ? '🟢' : '🔴'}</span>
-                  <span>{pushEnabled ? 'NOTIFICATIONS ENABLED' : 'NOTIFICATIONS OFF'}</span>
+                  <span className="w-2 h-2 rounded-full bg-current animate-pulse" />
+                  <span>{pushEnabled ? 'Notifications Enabled' : 'Notifications Disabled'}</span>
                 </span>
+
+                <button
+                  type="button"
+                  onClick={handleTogglePush}
+                  disabled={pushLoading}
+                  className={`relative inline-flex h-7 w-14 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    pushEnabled ? 'bg-amber-600' : 'bg-amber-950/80 border-amber-800/60'
+                  } ${pushLoading ? 'opacity-50 cursor-wait' : ''}`}
+                  aria-label="Toggle Order Push Notifications"
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                      pushEnabled ? 'translate-x-7 bg-amber-950' : 'translate-x-0 bg-amber-400'
+                    }`}
+                  />
+                </button>
               </div>
             </div>
 
-            {diag.notificationPermission === 'denied' ? (
-              <div className="p-4 bg-red-950/40 border border-red-900/60 rounded-xl text-xs space-y-3">
-                <div className="flex items-center space-x-2 text-red-300 font-bold text-sm">
-                  <span>🚫</span>
-                  <span>CHROME SITE NOTIFICATIONS ARE BLOCKED</span>
-                </div>
-                <p className="text-red-200/80 leading-relaxed text-[11px]">
-                  Chrome has saved a <strong className="text-white">"Denied"</strong> permission for <code className="bg-black/50 px-1.5 py-0.5 rounded text-amber-300">tawakal-bbq.vercel.app</code>. Browsers explicitly block websites from asking for permission programmatically once denied. You must manually change permission to <strong className="text-emerald-400 font-bold">Allow</strong> in Chrome settings.
+            {/* Notification Actions */}
+            <div className="pt-4 border-t border-amber-900/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <p className="text-xs text-amber-200/50 italic">
+                {pushEnabled
+                  ? 'Active on this device. Click below to verify notification delivery.'
+                  : 'Enable notifications above to receive new order alerts on this device.'}
+              </p>
+
+              <button
+                type="button"
+                onClick={handleSendTest}
+                disabled={testLoading || !pushEnabled}
+                className="px-5 py-2.5 rounded-xl border border-amber-600/50 bg-amber-600/10 hover:bg-amber-600/20 text-amber-300 hover:text-amber-100 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-40 flex items-center justify-center gap-2 shrink-0 cursor-pointer shadow-md"
+              >
+                <span>🔔</span>
+                <span>{testLoading ? 'Sending Test...' : 'Send Test Notification'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* CARD 2: SOUND NOTIFICATIONS */}
+          <div className="bg-[#18110e] border border-amber-900/40 rounded-2xl p-6 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center space-x-3.5">
+              <div className="w-11 h-11 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shrink-0 text-amber-400">
+                <Sliders className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bebas text-2xl tracking-wider text-amber-100 uppercase">
+                  SOUND NOTIFICATIONS
+                </h3>
+                <p className="text-xs text-amber-200/60">
+                  Play a notification sound when a new order arrives.
                 </p>
+              </div>
+            </div>
 
-                <div className="bg-[#0b0705] p-3 rounded-lg border border-red-900/40 space-y-2 text-[11px]">
-                  <span className="font-bold text-amber-300 block">📱 How to Unblock on Android Chrome:</span>
-                  <ol className="list-decimal list-inside space-y-1 text-amber-200/90">
-                    <li>Tap the <strong className="text-white">🔒 (Lock)</strong> or <strong className="text-white">Tune</strong> icon in the address bar next to <code className="text-amber-300 font-mono">tawakal-bbq.vercel.app</code>.</li>
-                    <li>Tap <strong className="text-white">Permissions</strong> or <strong className="text-white">Site Settings</strong>.</li>
-                    <li>Find <strong className="text-white">Notifications</strong> and select <strong className="text-emerald-400 font-bold">Allow</strong>.</li>
-                    <li>Return here and tap <strong className="text-amber-300 font-bold">"Refresh Permission Status"</strong> below.</li>
-                  </ol>
-                </div>
+            <button
+              type="button"
+              onClick={async () => {
+                const newValue = settings.sound_notifications_enabled === 'false' ? 'true' : 'false';
+                setSettings((prev: any) => ({ ...prev, sound_notifications_enabled: newValue }));
+                try {
+                  await fetch('/api/admin/settings', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sound_notifications_enabled: newValue }),
+                  });
+                  toast.success(`Sound notifications ${newValue === 'true' ? 'enabled' : 'disabled'}.`);
+                } catch {
+                  toast.error('Failed to update sound settings');
+                }
+              }}
+              className={`relative inline-flex h-7 w-14 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                settings.sound_notifications_enabled !== 'false' ? 'bg-amber-600' : 'bg-amber-950/80 border-amber-800/60'
+              }`}
+              aria-label="Toggle Sound Notifications"
+            >
+              <span
+                className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                  settings.sound_notifications_enabled !== 'false' ? 'translate-x-7 bg-amber-950' : 'translate-x-0 bg-amber-400'
+                }`}
+              />
+            </button>
+          </div>
 
-                <div className="pt-1 flex flex-wrap items-center gap-3">
+          {/* CARD 3: WHATSAPP NOTIFICATIONS */}
+          <div className="bg-[#18110e] border border-amber-900/40 rounded-2xl p-6 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center space-x-3.5">
+              <div className="w-11 h-11 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shrink-0 text-amber-400">
+                <Building className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bebas text-2xl tracking-wider text-amber-100 uppercase">
+                  WHATSAPP NOTIFICATIONS
+                </h3>
+                <p className="text-xs text-amber-200/60">
+                  Automatically provide customers with WhatsApp order confirmation.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={async () => {
+                const newValue = settings.whatsapp_notifications_enabled === 'false' ? 'true' : 'false';
+                setSettings((prev: any) => ({ ...prev, whatsapp_notifications_enabled: newValue }));
+                try {
+                  await fetch('/api/admin/settings', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ whatsapp_notifications_enabled: newValue }),
+                  });
+                  toast.success(`WhatsApp notifications ${newValue === 'true' ? 'enabled' : 'disabled'}.`);
+                } catch {
+                  toast.error('Failed to update WhatsApp settings');
+                }
+              }}
+              className={`relative inline-flex h-7 w-14 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                settings.whatsapp_notifications_enabled !== 'false' ? 'bg-amber-600' : 'bg-amber-950/80 border-amber-800/60'
+              }`}
+              aria-label="Toggle WhatsApp Notifications"
+            >
+              <span
+                className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                  settings.whatsapp_notifications_enabled !== 'false' ? 'translate-x-7 bg-amber-950' : 'translate-x-0 bg-amber-400'
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* CARD 4: REGISTERED DEVICES */}
+          <div className="bg-[#18110e] border border-amber-900/40 rounded-2xl p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-amber-900/30">
+              <div>
+                <h3 className="font-bebas text-2xl tracking-wider text-amber-100 uppercase">
+                  REGISTERED DEVICES ({registeredDevices.length})
+                </h3>
+                <p className="text-xs text-amber-200/60">
+                  Devices authorized to receive new-order push notifications.
+                </p>
+              </div>
+            </div>
+
+            {registeredDevices.length === 0 ? (
+              <div className="text-xs text-amber-400/60 italic p-4 bg-[#0d0907] rounded-xl border border-amber-900/20 text-center">
+                No active push devices registered for your admin account.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {registeredDevices.map((dev) => {
+                  const parsed = parseDeviceName(dev.userAgent);
+                  return (
+                    <div
+                      key={dev.id}
+                      className="p-4 bg-[#0d0907] border border-amber-900/30 rounded-xl flex items-center justify-between gap-3 text-xs"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="text-2xl">{parsed.icon}</span>
+                        <div className="truncate">
+                          <span className="font-bold text-amber-100 block truncate">
+                            {parsed.name}
+                          </span>
+                          <span className="text-[10px] text-amber-400/60 block">
+                            Registered: {new Date(dev.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        {dev.isCurrentDevice && (
+                          <span className="px-2.5 py-0.5 rounded text-[9px] font-bold uppercase bg-emerald-950 text-emerald-400 border border-emerald-800">
+                            Current
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveDevice(dev.id)}
+                          className="px-3 py-1.5 rounded-lg bg-red-950/60 border border-red-800/40 text-red-300 hover:bg-red-900/60 transition-colors cursor-pointer text-xs font-semibold"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* CARD 5: ADVANCED DEVELOPER DIAGNOSTICS (COLLAPSED BY DEFAULT) */}
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => setShowAdvancedDiag(!showAdvancedDiag)}
+              className="w-full flex items-center justify-between p-4 rounded-xl bg-[#140e0b] border border-amber-900/40 text-amber-300 hover:text-amber-100 hover:bg-amber-950/40 transition-all font-semibold text-xs cursor-pointer shadow-md"
+            >
+              <div className="flex items-center gap-2">
+                <Sliders className="w-4 h-4 text-amber-500" />
+                <span className="uppercase font-bebas text-lg tracking-wider text-amber-200">Advanced Developer Diagnostics</span>
+              </div>
+              <span className="text-amber-400 font-mono text-xs font-bold">
+                {showAdvancedDiag ? '▲ Collapse Diagnostics' : '▼ Expand Diagnostics'}
+              </span>
+            </button>
+
+            {showAdvancedDiag && (
+              <div className="mt-3 p-6 bg-[#140e0b] border border-amber-900/40 rounded-2xl space-y-6">
+                {/* Permission Alert inside Diagnostics if denied */}
+                {diag.notificationPermission === 'denied' && (
+                  <div className="p-4 bg-red-950/40 border border-red-900/60 rounded-xl text-xs space-y-3">
+                    <div className="flex items-center space-x-2 text-red-300 font-bold text-sm">
+                      <span>🚫</span>
+                      <span>CHROME SITE NOTIFICATIONS ARE BLOCKED</span>
+                    </div>
+                    <p className="text-red-200/80 leading-relaxed text-[11px]">
+                      Chrome has saved a <strong className="text-white">"Denied"</strong> permission for <code className="bg-black/50 px-1.5 py-0.5 rounded text-amber-300">tawakal-bbq.vercel.app</code>.
+                      You must manually change permission to <strong className="text-emerald-400 font-bold">Allow</strong> in Chrome site settings.
+                    </p>
+                    <div className="bg-[#0b0705] p-3 rounded-lg border border-red-900/40 space-y-2 text-[11px]">
+                      <span className="font-bold text-amber-300 block">📱 How to Unblock on Android Chrome:</span>
+                      <ol className="list-decimal list-inside space-y-1 text-amber-200/90">
+                        <li>Tap the <strong className="text-white">🔒 (Lock)</strong> icon in the address bar.</li>
+                        <li>Tap <strong className="text-white">Permissions</strong> or <strong className="text-white">Site Settings</strong>.</li>
+                        <li>Select <strong className="text-emerald-400 font-bold">Allow</strong> for Notifications.</li>
+                      </ol>
+                    </div>
+                  </div>
+                )}
+
+                {/* Developer Actions */}
+                <div className="flex flex-wrap items-center gap-3 pb-4 border-b border-amber-900/30">
                   <button
                     type="button"
                     onClick={handleRefreshPermission}
-                    className="px-4 py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-amber-950 font-bold rounded-lg text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer shadow-lg"
+                    className="px-3.5 py-2 bg-amber-600 hover:bg-amber-500 text-amber-950 font-bold rounded-lg text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow"
                   >
                     <span>🔄</span>
                     <span>Refresh Permission Status</span>
@@ -893,355 +1103,232 @@ export default function AdminSettingsPage() {
 
                   <button
                     type="button"
-                    onClick={() => {
-                      toast.info('Tap the 🔒 (Lock) icon next to the address bar at the top of Chrome to change site permissions.');
-                    }}
-                    className="px-4 py-2.5 bg-[#18110e] border border-amber-800/60 text-amber-300 hover:bg-amber-950/60 font-bold rounded-lg text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer"
+                    onClick={handleLocalSWTest}
+                    className="px-3.5 py-2 bg-emerald-950 border border-emerald-800 text-emerald-300 hover:bg-emerald-900 font-bold rounded-lg text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer"
                   >
-                    <span>⚙️</span>
-                    <span>Reset Site Permission Guide</span>
+                    <span>📲</span>
+                    <span>Local SW Display Test</span>
                   </button>
-                </div>
-              </div>
-            ) : (
-              <p className="text-xs text-amber-300/80 bg-[#0d0907] p-3 rounded-xl border border-amber-900/30">
-                {pushEnabled
-                  ? '🟢 This device is registered to receive new-order alerts even when the admin dashboard is not currently open, where supported by the device/browser.'
-                  : '🔴 Notifications for new orders are currently OFF for this device. Click "Enable Order Notifications" below to activate.'}
-              </p>
-            )}
 
-            {/* Action Buttons */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-              <button
-                type="button"
-                onClick={handleTogglePush}
-                disabled={pushLoading}
-                className={`px-5 py-3 rounded-xl font-sans text-xs font-bold uppercase tracking-wider shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                  pushEnabled
-                    ? 'bg-red-950/80 border border-red-800 text-red-300 hover:bg-red-900/80'
-                    : 'bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-amber-950'
-                }`}
-              >
-                <Bell className="w-4 h-4" />
-                <span>
-                  {pushLoading
-                    ? 'Processing...'
-                    : pushEnabled
-                    ? '🔕 DISABLE ORDER NOTIFICATIONS'
-                    : '🔔 ENABLE ORDER NOTIFICATIONS'}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleSendTest}
-                disabled={testLoading || !pushEnabled}
-                className="px-4 py-3 rounded-xl border border-amber-800/50 bg-[#120c09] hover:bg-amber-950/40 text-amber-300 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <span>🧪</span>
-                <span>{testLoading ? 'Sending...' : 'SERVER PUSH TEST'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleLocalSWTest}
-                className="px-4 py-3 rounded-xl border border-emerald-800/50 bg-[#06140e] hover:bg-emerald-950/60 text-emerald-300 text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
-              >
-                <span>📲</span>
-                <span>LOCAL SW TEST</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleSwUpdateReload}
-                disabled={swUpdating}
-                className="px-4 py-3 rounded-xl border border-amber-900/60 bg-[#18110e] hover:bg-amber-950/80 text-amber-300 text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <span>🔄</span>
-                <span>{swUpdating ? 'Reloading...' : 'SW UPDATE / RELOAD'}</span>
-              </button>
-            </div>
-
-            {/* Local SW Test Result Banner */}
-            {localTestResult !== 'Not tested yet' && (
-              <div className={`p-3 rounded-xl border text-xs font-mono font-bold flex items-center justify-between gap-2 ${
-                localTestResult === 'SUCCESS'
-                  ? 'bg-emerald-950/40 border-emerald-800 text-emerald-300'
-                  : 'bg-red-950/40 border-red-800 text-red-300'
-              }`}>
-                <span>LOCAL SW NOTIFICATION DISPLAY TEST:</span>
-                <span>{localTestResult}</span>
-              </div>
-            )}
-
-            {/* Live Diagnostic Dashboard */}
-            <div className="pt-4 border-t border-amber-900/30 space-y-3">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <span>🛠️</span>
-                  <span>PWA PUSH DIAGNOSTICS (LIVE RUNTIME)</span>
-                </h4>
-                <button
-                  type="button"
-                  onClick={fetchDevices}
-                  className="text-[10px] text-amber-400/80 hover:text-amber-200 underline cursor-pointer"
-                >
-                  Refresh Diag
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 text-[11px]">
-                <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
-                  <span className="text-amber-200/50 block font-mono text-[9px] uppercase">1. Origin</span>
-                  <span className="text-amber-100 font-mono font-bold truncate block">{diag.origin || 'Unknown'}</span>
-                </div>
-
-                <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
-                  <span className="text-amber-200/50 block font-mono text-[9px] uppercase">2. Notification.permission</span>
-                  <span className={`font-mono font-bold ${diag.notificationPermission === 'granted' ? 'text-emerald-400' : 'text-amber-400'}`}>
-                    {diag.notificationPermission}
-                  </span>
-                </div>
-
-                <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
-                  <span className="text-amber-200/50 block font-mono text-[9px] uppercase">3. SW Supported</span>
-                  <span className="text-amber-100 font-mono font-bold">{diag.swSupported ? 'YES' : 'NO'}</span>
-                </div>
-
-                <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
-                  <span className="text-amber-200/50 block font-mono text-[9px] uppercase">4. SW Reg Exists</span>
-                  <span className="text-amber-100 font-mono font-bold">{diag.swRegistrationExists ? 'YES' : 'NO'}</span>
-                </div>
-
-                <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
-                  <span className="text-amber-200/50 block font-mono text-[9px] uppercase">5. SW Active</span>
-                  <span className="text-amber-100 font-mono font-bold">{diag.swActive ? 'YES' : 'NO'}</span>
-                </div>
-
-                <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
-                  <span className="text-amber-200/50 block font-mono text-[9px] uppercase">6. SW Scope</span>
-                  <span className="text-amber-100 font-mono font-bold truncate block">{diag.swScope}</span>
-                </div>
-
-                <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
-                  <span className="text-amber-200/50 block font-mono text-[9px] uppercase">7. pushManager Exists</span>
-                  <span className="text-amber-100 font-mono font-bold">{diag.pushManagerExists ? 'YES' : 'NO'}</span>
-                </div>
-
-                <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
-                  <span className="text-amber-200/50 block font-mono text-[9px] uppercase">8. Existing Push Sub</span>
-                  <span className="text-amber-100 font-mono font-bold">{diag.existingSubscription ? 'YES' : 'NO'}</span>
-                </div>
-
-                <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
-                  <span className="text-amber-200/50 block font-mono text-[9px] uppercase">9. VAPID Public Key</span>
-                  <span className="text-amber-100 font-mono font-bold">
-                    {diag.vapidKeyExists ? `YES (${diag.vapidKeyLength} chars)` : 'MISSING'}
-                  </span>
-                </div>
-
-                <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
-                  <span className="text-amber-200/50 block font-mono text-[9px] uppercase">10. Last Error Name</span>
-                  <span className="text-amber-100 font-mono font-bold">{diag.lastErrorName}</span>
-                </div>
-
-                <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
-                  <span className="text-amber-200/50 block font-mono text-[9px] uppercase">11. Last Error Message</span>
-                  <span className="text-amber-100 font-mono font-bold truncate block">{diag.lastErrorMessage}</span>
-                </div>
-
-                <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
-                  <span className="text-amber-200/50 block font-mono text-[9px] uppercase">12. POST /push-subscriptions</span>
-                  <span className="text-amber-100 font-mono font-bold">{diag.postStatus}</span>
-                </div>
-
-                <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg sm:col-span-2 lg:col-span-3">
-                  <span className="text-amber-200/50 block font-mono text-[9px] uppercase">13. GET /push-subscriptions</span>
-                  <span className="text-amber-100 font-mono font-bold">{diag.getStatus}</span>
-                </div>
-              </div>
-
-              {/* Real-time Diagnostic Log Console */}
-              <div className="bg-[#050302] border border-amber-900/40 rounded-xl p-3 font-mono text-[10px] space-y-1 max-h-48 overflow-y-auto">
-                <div className="text-amber-400 font-bold border-b border-amber-900/40 pb-1 flex justify-between">
-                  <span>STEP-BY-STEP DIAGNOSTIC CONSOLE</span>
-                  <button type="button" onClick={() => setDiagLogs([])} className="hover:text-amber-200 cursor-pointer">Clear</button>
-                </div>
-                {diagLogs.length === 0 ? (
-                  <div className="text-amber-500/40 italic py-1">Click "Enable Order Notifications" to record step-by-step execution diagnostic logs.</div>
-                ) : (
-                  diagLogs.map((log, idx) => (
-                    <div key={idx} className={log.includes('ERROR') ? 'text-red-400 font-bold' : log.includes('SUCCESS') || log.includes('GRANTED') ? 'text-emerald-400 font-bold' : 'text-amber-200/80'}>
-                      {log}
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {/* Server Web Push Delivery Diagnostics */}
-              <div className="pt-2 space-y-2">
-                <h5 className="text-[11px] font-bold text-amber-300/90 uppercase tracking-wider flex items-center gap-1.5">
-                  <span>📡</span>
-                  <span>SERVER WEB PUSH DELIVERY DIAGNOSTICS</span>
-                </h5>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 text-[11px]">
-                  <div className="p-2.5 bg-[#080504] border border-amber-900/30 rounded-lg">
-                    <span className="text-amber-200/50 block font-mono text-[9px] uppercase">Last Test Attempt</span>
-                    <span className="text-amber-100 font-mono font-bold truncate block">{deliveryDiag.lastTestAttempt}</span>
-                  </div>
-
-                  <div className="p-2.5 bg-[#080504] border border-amber-900/30 rounded-lg">
-                    <span className="text-amber-200/50 block font-mono text-[9px] uppercase">Provider Accepted</span>
-                    <span className={`font-mono font-bold ${deliveryDiag.providerAccepted === 'YES' ? 'text-emerald-400' : deliveryDiag.providerAccepted === 'NO' ? 'text-red-400' : 'text-amber-300'}`}>
-                      {deliveryDiag.providerAccepted}
-                    </span>
-                  </div>
-
-                  <div className="p-2.5 bg-[#080504] border border-amber-900/30 rounded-lg">
-                    <span className="text-amber-200/50 block font-mono text-[9px] uppercase">Provider Status Code</span>
-                    <span className="text-amber-100 font-mono font-bold">{deliveryDiag.providerStatusCode}</span>
-                  </div>
-
-                  <div className="p-2.5 bg-[#080504] border border-amber-900/30 rounded-lg">
-                    <span className="text-amber-200/50 block font-mono text-[9px] uppercase">Endpoint Host Only</span>
-                    <span className="text-amber-100 font-mono font-bold truncate block">{deliveryDiag.endpointHost || 'None'}</span>
-                  </div>
-
-                  <div className="p-2.5 bg-[#080504] border border-amber-900/30 rounded-lg">
-                    <span className="text-amber-200/50 block font-mono text-[9px] uppercase">Sends (Delivered / Failed)</span>
-                    <span className="text-amber-100 font-mono font-bold">{deliveryDiag.successfulSends} delivered / {deliveryDiag.failedSends} failed</span>
-                  </div>
-
-                  <div className="p-2.5 bg-[#080504] border border-amber-900/30 rounded-lg">
-                    <span className="text-amber-200/50 block font-mono text-[9px] uppercase">Active Subscriptions</span>
-                    <span className="text-amber-100 font-mono font-bold">{deliveryDiag.activeSubscriptionsCount}</span>
-                  </div>
-
-                  <div className="p-2.5 bg-[#080504] border border-amber-900/30 rounded-lg">
-                    <span className="text-amber-200/50 block font-mono text-[9px] uppercase">Last Error Name</span>
-                    <span className="text-amber-100 font-mono font-bold">{deliveryDiag.lastErrorName}</span>
-                  </div>
-
-                  <div className="p-2.5 bg-[#080504] border border-amber-900/30 rounded-lg sm:col-span-2">
-                    <span className="text-amber-200/50 block font-mono text-[9px] uppercase">Last Error Message</span>
-                    <span className="text-amber-100 font-mono font-bold truncate block">{deliveryDiag.lastErrorMessage}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Service Worker In-Memory Diagnostics (via postMessage) */}
-              <div className="pt-2 space-y-2">
-                <div className="flex items-center justify-between">
-                  <h5 className="text-[11px] font-bold text-amber-300/90 uppercase tracking-wider flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={handleSwUpdateReload}
+                    disabled={swUpdating}
+                    className="px-3.5 py-2 bg-[#18110e] border border-amber-800/60 text-amber-300 hover:bg-amber-950 font-bold rounded-lg text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
                     <span>⚡</span>
-                    <span>SERVICE WORKER PUSH DIAGNOSTICS (POSTMESSAGE)</span>
-                  </h5>
-                  <button type="button" onClick={fetchSwDiagnostics} className="text-[10px] text-amber-400/80 hover:text-amber-200 underline cursor-pointer">
-                    Query SW
+                    <span>{swUpdating ? 'Reloading...' : 'SW Update / Reload'}</span>
                   </button>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 text-[11px]">
-                  <div className="p-2.5 bg-[#050907] border border-emerald-900/30 rounded-lg">
-                    <span className="text-emerald-200/50 block font-mono text-[9px] uppercase">SW Version</span>
-                    <span className="text-emerald-300 font-mono font-bold">{swDiagnostics.swVersion}</span>
+
+                {/* Local SW Test Result Banner */}
+                {localTestResult !== 'Not tested yet' && (
+                  <div className={`p-3 rounded-xl border text-xs font-mono font-bold flex items-center justify-between gap-2 ${
+                    localTestResult === 'SUCCESS'
+                      ? 'bg-emerald-950/40 border-emerald-800 text-emerald-300'
+                      : 'bg-red-950/40 border-red-800 text-red-300'
+                  }`}>
+                    <span>LOCAL SW NOTIFICATION DISPLAY TEST:</span>
+                    <span>{localTestResult}</span>
+                  </div>
+                )}
+
+                {/* PWA Push Diagnostics Live Runtime Grid */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <span>🛠️</span>
+                      <span>PWA PUSH DIAGNOSTICS (LIVE RUNTIME)</span>
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={fetchDevices}
+                      className="text-[10px] text-amber-400/80 hover:text-amber-200 underline cursor-pointer"
+                    >
+                      Refresh Diag
+                    </button>
                   </div>
 
-                  <div className="p-2.5 bg-[#050907] border border-emerald-900/30 rounded-lg">
-                    <span className="text-emerald-200/50 block font-mono text-[9px] uppercase">Push Received Count</span>
-                    <span className="text-emerald-300 font-mono font-bold">{swDiagnostics.pushCount}</span>
-                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 text-[11px]">
+                    <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
+                      <span className="text-amber-200/50 block font-mono text-[9px] uppercase">1. Origin</span>
+                      <span className="text-amber-100 font-mono font-bold truncate block">{diag.origin || 'Unknown'}</span>
+                    </div>
 
-                  <div className="p-2.5 bg-[#050907] border border-emerald-900/30 rounded-lg">
-                    <span className="text-emerald-200/50 block font-mono text-[9px] uppercase">showNotification Status</span>
-                    <span className="text-emerald-300 font-mono font-bold">{swDiagnostics.lastStatus}</span>
-                  </div>
+                    <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
+                      <span className="text-amber-200/50 block font-mono text-[9px] uppercase">2. Notification.permission</span>
+                      <span className={`font-mono font-bold ${diag.notificationPermission === 'granted' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                        {diag.notificationPermission}
+                      </span>
+                    </div>
 
-                  <div className="p-2.5 bg-[#050907] border border-emerald-900/30 rounded-lg">
-                    <span className="text-emerald-200/50 block font-mono text-[9px] uppercase">Last Push Timestamp</span>
-                    <span className="text-emerald-300 font-mono font-bold">{swDiagnostics.lastTimestamp}</span>
-                  </div>
+                    <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
+                      <span className="text-amber-200/50 block font-mono text-[9px] uppercase">3. SW Supported</span>
+                      <span className="text-amber-100 font-mono font-bold">{diag.swSupported ? 'YES' : 'NO'}</span>
+                    </div>
 
-                  <div className="p-2.5 bg-[#050907] border border-emerald-900/30 rounded-lg sm:col-span-2">
-                    <span className="text-emerald-200/50 block font-mono text-[9px] uppercase">Last Payload Received</span>
-                    <span className="text-emerald-300 font-mono font-bold truncate block">{swDiagnostics.lastPayload}</span>
+                    <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
+                      <span className="text-amber-200/50 block font-mono text-[9px] uppercase">4. SW Reg Exists</span>
+                      <span className="text-amber-100 font-mono font-bold">{diag.swRegistrationExists ? 'YES' : 'NO'}</span>
+                    </div>
+
+                    <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
+                      <span className="text-amber-200/50 block font-mono text-[9px] uppercase">5. SW Active</span>
+                      <span className="text-amber-100 font-mono font-bold">{diag.swActive ? 'YES' : 'NO'}</span>
+                    </div>
+
+                    <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
+                      <span className="text-amber-200/50 block font-mono text-[9px] uppercase">6. SW Scope</span>
+                      <span className="text-amber-100 font-mono font-bold truncate block">{diag.swScope}</span>
+                    </div>
+
+                    <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
+                      <span className="text-amber-200/50 block font-mono text-[9px] uppercase">7. pushManager Exists</span>
+                      <span className="text-amber-100 font-mono font-bold">{diag.pushManagerExists ? 'YES' : 'NO'}</span>
+                    </div>
+
+                    <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
+                      <span className="text-amber-200/50 block font-mono text-[9px] uppercase">8. Existing Push Sub</span>
+                      <span className="text-amber-100 font-mono font-bold">{diag.existingSubscription ? 'YES' : 'NO'}</span>
+                    </div>
+
+                    <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
+                      <span className="text-amber-200/50 block font-mono text-[9px] uppercase">9. VAPID Public Key</span>
+                      <span className="text-amber-100 font-mono font-bold">
+                        {diag.vapidKeyExists ? `YES (${diag.vapidKeyLength} chars)` : 'MISSING'}
+                      </span>
+                    </div>
+
+                    <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
+                      <span className="text-amber-200/50 block font-mono text-[9px] uppercase">10. Last Error Name</span>
+                      <span className="text-amber-100 font-mono font-bold">{diag.lastErrorName}</span>
+                    </div>
+
+                    <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
+                      <span className="text-amber-200/50 block font-mono text-[9px] uppercase">11. Last Error Message</span>
+                      <span className="text-amber-100 font-mono font-bold truncate block">{diag.lastErrorMessage}</span>
+                    </div>
+
+                    <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg">
+                      <span className="text-amber-200/50 block font-mono text-[9px] uppercase">12. POST /push-subscriptions</span>
+                      <span className="text-amber-100 font-mono font-bold">{diag.postStatus}</span>
+                    </div>
+
+                    <div className="p-2.5 bg-[#0a0705] border border-amber-900/30 rounded-lg sm:col-span-2 lg:col-span-3">
+                      <span className="text-amber-200/50 block font-mono text-[9px] uppercase">13. GET /push-subscriptions</span>
+                      <span className="text-amber-100 font-mono font-bold">{diag.getStatus}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step-by-Step Diagnostic Console */}
+                <div className="bg-[#050302] border border-amber-900/40 rounded-xl p-3 font-mono text-[10px] space-y-1 max-h-48 overflow-y-auto">
+                  <div className="text-amber-400 font-bold border-b border-amber-900/40 pb-1 flex justify-between">
+                    <span>STEP-BY-STEP DIAGNOSTIC CONSOLE</span>
+                    <button type="button" onClick={() => setDiagLogs([])} className="hover:text-amber-200 cursor-pointer">Clear</button>
+                  </div>
+                  {diagLogs.length === 0 ? (
+                    <div className="text-amber-500/40 italic py-1">Click "Enable Order Notifications" to record step-by-step execution diagnostic logs.</div>
+                  ) : (
+                    diagLogs.map((log, idx) => (
+                      <div key={idx} className={log.includes('ERROR') ? 'text-red-400 font-bold' : log.includes('SUCCESS') || log.includes('GRANTED') ? 'text-emerald-400 font-bold' : 'text-amber-200/80'}>
+                        {log}
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Server Web Push Delivery Diagnostics */}
+                <div className="space-y-2">
+                  <h5 className="text-[11px] font-bold text-amber-300/90 uppercase tracking-wider flex items-center gap-1.5">
+                    <span>📡</span>
+                    <span>SERVER WEB PUSH DELIVERY DIAGNOSTICS</span>
+                  </h5>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 text-[11px]">
+                    <div className="p-2.5 bg-[#080504] border border-amber-900/30 rounded-lg">
+                      <span className="text-amber-200/50 block font-mono text-[9px] uppercase">Last Test Attempt</span>
+                      <span className="text-amber-100 font-mono font-bold truncate block">{deliveryDiag.lastTestAttempt}</span>
+                    </div>
+
+                    <div className="p-2.5 bg-[#080504] border border-amber-900/30 rounded-lg">
+                      <span className="text-amber-200/50 block font-mono text-[9px] uppercase">Provider Accepted</span>
+                      <span className={`font-mono font-bold ${deliveryDiag.providerAccepted === 'YES' ? 'text-emerald-400' : deliveryDiag.providerAccepted === 'NO' ? 'text-red-400' : 'text-amber-300'}`}>
+                        {deliveryDiag.providerAccepted}
+                      </span>
+                    </div>
+
+                    <div className="p-2.5 bg-[#080504] border border-amber-900/30 rounded-lg">
+                      <span className="text-amber-200/50 block font-mono text-[9px] uppercase">Provider Status Code</span>
+                      <span className="text-amber-100 font-mono font-bold">{deliveryDiag.providerStatusCode}</span>
+                    </div>
+
+                    <div className="p-2.5 bg-[#080504] border border-amber-900/30 rounded-lg">
+                      <span className="text-amber-200/50 block font-mono text-[9px] uppercase">Endpoint Host Only</span>
+                      <span className="text-amber-100 font-mono font-bold truncate block">{deliveryDiag.endpointHost || 'None'}</span>
+                    </div>
+
+                    <div className="p-2.5 bg-[#080504] border border-amber-900/30 rounded-lg">
+                      <span className="text-amber-200/50 block font-mono text-[9px] uppercase">Sends (Delivered / Failed)</span>
+                      <span className="text-amber-100 font-mono font-bold">{deliveryDiag.successfulSends} delivered / {deliveryDiag.failedSends} failed</span>
+                    </div>
+
+                    <div className="p-2.5 bg-[#080504] border border-amber-900/30 rounded-lg">
+                      <span className="text-amber-200/50 block font-mono text-[9px] uppercase">Active Subscriptions</span>
+                      <span className="text-amber-100 font-mono font-bold">{deliveryDiag.activeSubscriptionsCount}</span>
+                    </div>
+
+                    <div className="p-2.5 bg-[#080504] border border-amber-900/30 rounded-lg">
+                      <span className="text-amber-200/50 block font-mono text-[9px] uppercase">Last Error Name</span>
+                      <span className="text-amber-100 font-mono font-bold">{deliveryDiag.lastErrorName}</span>
+                    </div>
+
+                    <div className="p-2.5 bg-[#080504] border border-amber-900/30 rounded-lg sm:col-span-2">
+                      <span className="text-amber-200/50 block font-mono text-[9px] uppercase">Last Error Message</span>
+                      <span className="text-amber-100 font-mono font-bold truncate block">{deliveryDiag.lastErrorMessage}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Service Worker In-Memory Diagnostics */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h5 className="text-[11px] font-bold text-amber-300/90 uppercase tracking-wider flex items-center gap-1.5">
+                      <span>⚡</span>
+                      <span>SERVICE WORKER PUSH DIAGNOSTICS (POSTMESSAGE)</span>
+                    </h5>
+                    <button type="button" onClick={fetchSwDiagnostics} className="text-[10px] text-amber-400/80 hover:text-amber-200 underline cursor-pointer">
+                      Query SW
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 text-[11px]">
+                    <div className="p-2.5 bg-[#050907] border border-emerald-900/30 rounded-lg">
+                      <span className="text-emerald-200/50 block font-mono text-[9px] uppercase">SW Version</span>
+                      <span className="text-emerald-300 font-mono font-bold">{swDiagnostics.swVersion}</span>
+                    </div>
+
+                    <div className="p-2.5 bg-[#050907] border border-emerald-900/30 rounded-lg">
+                      <span className="text-emerald-200/50 block font-mono text-[9px] uppercase">Push Received Count</span>
+                      <span className="text-emerald-300 font-mono font-bold">{swDiagnostics.pushCount}</span>
+                    </div>
+
+                    <div className="p-2.5 bg-[#050907] border border-emerald-900/30 rounded-lg">
+                      <span className="text-emerald-200/50 block font-mono text-[9px] uppercase">showNotification Status</span>
+                      <span className="text-emerald-300 font-mono font-bold">{swDiagnostics.lastStatus}</span>
+                    </div>
+
+                    <div className="p-2.5 bg-[#050907] border border-emerald-900/30 rounded-lg">
+                      <span className="text-emerald-200/50 block font-mono text-[9px] uppercase">Last Push Timestamp</span>
+                      <span className="text-emerald-300 font-mono font-bold">{swDiagnostics.lastTimestamp}</span>
+                    </div>
+
+                    <div className="p-2.5 bg-[#050907] border border-emerald-900/30 rounded-lg sm:col-span-2">
+                      <span className="text-emerald-200/50 block font-mono text-[9px] uppercase">Last Payload Received</span>
+                      <span className="text-emerald-300 font-mono font-bold truncate block">{swDiagnostics.lastPayload}</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-
-            {/* Sub-Section: Registered Admin Devices */}
-            <div className="pt-4 border-t border-amber-900/30 space-y-3">
-              <h4 className="text-xs font-bold text-amber-300 uppercase tracking-wider">
-                REGISTERED ADMIN DEVICES ({registeredDevices.length})
-              </h4>
-
-              {registeredDevices.length === 0 ? (
-                <div className="text-xs text-amber-400/50 italic p-3 bg-[#0d0907] rounded-xl border border-amber-900/20">
-                  No active push devices registered for your admin account.
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {registeredDevices.map((dev) => {
-                    const parsed = parseDeviceName(dev.userAgent);
-                    return (
-                      <div
-                        key={dev.id}
-                        className="p-3.5 bg-[#0d0907] border border-amber-900/30 rounded-xl flex items-center justify-between gap-3 text-xs"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <span className="text-xl">{parsed.icon}</span>
-                          <div className="truncate">
-                            <span className="font-bold text-amber-100 block truncate">
-                              {parsed.name}
-                            </span>
-                            <span className="text-[10px] text-amber-400/60 block">
-                              Registered: {new Date(dev.createdAt).toLocaleDateString()}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 shrink-0">
-                          {dev.isCurrentDevice && (
-                            <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-emerald-950 text-emerald-400 border border-emerald-800">
-                              Current
-                            </span>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveDevice(dev.id)}
-                            className="p-1.5 rounded-lg bg-red-950/60 border border-red-800/40 text-red-300 hover:bg-red-900/60 transition-colors cursor-pointer"
-                            title="Remove device subscription"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* SECTION 2: SYSTEM / SOUND NOTIFICATIONS */}
-          <div className="bg-[#18110e] border border-amber-900/40 rounded-2xl p-6 shadow-xl space-y-4">
-            <h3 className="font-bebas text-xl tracking-wider text-amber-100 uppercase border-b border-amber-900/30 pb-2">
-              SYSTEM / SOUND NOTIFICATIONS
-            </h3>
-            <p className="text-xs text-amber-200/70">
-              In-browser audio chimes for new incoming orders on the active Admin Orders page are enabled by default.
-            </p>
-          </div>
-
-          {/* SECTION 3: WHATSAPP NOTIFICATIONS */}
-          <div className="bg-[#18110e] border border-amber-900/40 rounded-2xl p-6 shadow-xl space-y-4">
-            <h3 className="font-bebas text-xl tracking-wider text-amber-100 uppercase border-b border-amber-900/30 pb-2">
-              WHATSAPP NOTIFICATIONS
-            </h3>
-            <p className="text-xs text-amber-200/70">
-              Instant customer WhatsApp confirmation links are generated automatically upon order placement.
-            </p>
+            )}
           </div>
         </div>
       )}
