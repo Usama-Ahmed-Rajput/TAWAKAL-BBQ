@@ -32,11 +32,11 @@ export function PublicCheckoutClient() {
 
   const [branches, setBranches] = useState<Branch[]>([]);
   const [selectedBranchId, setSelectedBranchId] = useState<string>('');
-  
+
   const [orderType, setOrderType] = useState<'DELIVERY' | 'PICKUP'>('DELIVERY');
   const [deliveryAreas, setDeliveryAreas] = useState<DeliveryArea[]>([]);
   const [selectedAreaId, setSelectedAreaId] = useState<string>('');
-  
+
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
@@ -173,29 +173,29 @@ export function PublicCheckoutClient() {
 
       const orderPayload = data.order
         ? {
-            ...data.order,
-            area: currentArea ? currentArea.name.replace(/\s*\([^)]*\)/g, '').trim() : 'Akhtar Colony',
-            sector: selectedSector || 'Sector A',
-            houseFlatNo: houseFlatNo || undefined,
-            landmark: landmark || undefined,
-          }
+          ...data.order,
+          area: currentArea ? currentArea.name.replace(/\s*\([^)]*\)/g, '').trim() : 'Akhtar Colony',
+          sector: selectedSector || 'Sector A',
+          houseFlatNo: houseFlatNo || undefined,
+          landmark: landmark || undefined,
+        }
         : {
-            orderNumber: data.orderNumber,
-            customerName,
-            customerPhone,
-            orderType,
-            deliveryAddress: fullAddress,
-            area: currentArea ? currentArea.name.replace(/\s*\([^)]*\)/g, '').trim() : 'Akhtar Colony',
-            sector: selectedSector || 'Sector A',
-            houseFlatNo: houseFlatNo || undefined,
-            landmark: landmark || undefined,
-            subtotal,
-            deliveryFee: currentDeliveryFee,
-            totalAmount: grandTotal,
-            paymentMethod: 'CASH_ON_DELIVERY',
-            orderItems: cart.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price })),
-            createdAt: new Date().toISOString(),
-          };
+          orderNumber: data.orderNumber,
+          customerName,
+          customerPhone,
+          orderType,
+          deliveryAddress: fullAddress,
+          area: currentArea ? currentArea.name.replace(/\s*\([^)]*\)/g, '').trim() : 'Akhtar Colony',
+          sector: selectedSector || 'Sector A',
+          houseFlatNo: houseFlatNo || undefined,
+          landmark: landmark || undefined,
+          subtotal,
+          deliveryFee: currentDeliveryFee,
+          totalAmount: grandTotal,
+          paymentMethod: 'CASH_ON_DELIVERY',
+          orderItems: cart.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price })),
+          createdAt: new Date().toISOString(),
+        };
 
       clearCart();
 
@@ -272,11 +272,10 @@ export function PublicCheckoutClient() {
                       key={b.id}
                       type="button"
                       onClick={() => setSelectedBranchId(b.id)}
-                      className={`p-4 rounded-xl border flex flex-col items-start justify-between text-left transition-all ${
-                        isSelected
+                      className={`p-4 rounded-xl border flex flex-col items-start justify-between text-left transition-all ${isSelected
                           ? 'bg-[#C69A45]/15 border-[#C69A45] text-[#F4EBDD]'
                           : 'bg-[#11100E] border-[#24201C] text-[#9F9589] hover:border-[#9F9589]'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-2 mb-1">
                         <Store className={`w-5 h-5 ${isSelected ? 'text-[#C69A45]' : 'text-[#9F9589]'}`} />
@@ -303,11 +302,10 @@ export function PublicCheckoutClient() {
                 <button
                   type="button"
                   onClick={() => setOrderType('DELIVERY')}
-                  className={`p-4 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${
-                    orderType === 'DELIVERY'
+                  className={`p-4 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${orderType === 'DELIVERY'
                       ? 'bg-[#C83B22]/15 border-[#C83B22] text-[#F4EBDD]'
                       : 'bg-[#11100E] border-[#24201C] text-[#9F9589] hover:border-[#9F9589]'
-                  }`}
+                    }`}
                 >
                   <Truck className={`w-6 h-6 ${orderType === 'DELIVERY' ? 'text-[#C83B22]' : 'text-[#9F9589]'}`} />
                   <span className="font-sans text-xs uppercase font-bold tracking-wider">
@@ -318,11 +316,10 @@ export function PublicCheckoutClient() {
                 <button
                   type="button"
                   onClick={() => setOrderType('PICKUP')}
-                  className={`p-4 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${
-                    orderType === 'PICKUP'
+                  className={`p-4 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${orderType === 'PICKUP'
                       ? 'bg-[#C69A45]/15 border-[#C69A45] text-[#F4EBDD]'
                       : 'bg-[#11100E] border-[#24201C] text-[#9F9589] hover:border-[#9F9589]'
-                  }`}
+                    }`}
                 >
                   <Store className={`w-6 h-6 ${orderType === 'PICKUP' ? 'text-[#C69A45]' : 'text-[#9F9589]'}`} />
                   <span className="font-sans text-xs uppercase font-bold tracking-wider">
@@ -463,7 +460,7 @@ export function PublicCheckoutClient() {
                       type="text"
                       value={landmark}
                       onChange={(e) => setLandmark(e.target.value)}
-                      placeholder="e.g. Jasyugsavgw / Near Mosque"
+                      placeholder="e.g. Near Area / Near Mosque"
                       className="w-full bg-[#11100E] border border-[#24201C] rounded-xl px-4 py-3 text-sm text-[#F4EBDD] focus:outline-none focus:border-[#C69A45]"
                     />
                   </div>
