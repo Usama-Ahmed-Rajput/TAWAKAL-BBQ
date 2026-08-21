@@ -11,6 +11,12 @@ export async function GET(req: Request) {
     const branchId = searchParams.get('branchId');
     const search = searchParams.get('search');
 
+    const pageParam = parseInt(searchParams.get('page') || '1', 10);
+    const limitParam = parseInt(searchParams.get('limit') || '50', 10);
+    const page = isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
+    const limit = isNaN(limitParam) || limitParam < 1 ? 50 : Math.min(limitParam, 100);
+    const skip = (page - 1) * limit;
+
     const where: any = {};
     if (status && status !== 'ALL') {
       where.orderStatus = status;
@@ -26,16 +32,31 @@ export async function GET(req: Request) {
       ];
     }
 
-    const orders = await prisma.order.findMany({
-      where,
-      include: {
-        orderItems: true,
-        branch: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    const [totalCount, orders] = await Promise.all([
+      prisma.order.count({ where }),
+      prisma.order.findMany({
+        where,
+        include: {
+          orderItems: true,
+          branch: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+    ]);
 
-    return NextResponse.json({ orders });
+    const totalPages = Math.ceil(totalCount / limit) || 1;
+
+    return NextResponse.json({
+      orders,
+      pagination: {
+        page,
+        limit,
+        totalCount,
+        totalPages,
+      },
+    });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 });
   }
@@ -106,7 +127,7 @@ export async function POST(req: Request) {
         });
 
         if (dbDeal && dbDeal.isActive !== false) {
-          const itemPrice = dbDeal.dealPrice;
+          const itemPrice = Math.round(dbDeal.dealPrice);
           calculatedSubtotal += itemPrice * qty;
           validatedOrderItems.push({
             dealId: dbDeal.id,
@@ -128,7 +149,7 @@ export async function POST(req: Request) {
           });
 
           if (dbProduct && dbProduct.isActive !== false && dbProduct.isAvailable !== false) {
-            const itemPrice = dbProduct.price;
+            const itemPrice = Math.round(dbProduct.price);
             calculatedSubtotal += itemPrice * qty;
             validatedOrderItems.push({
               productId: dbProduct.id,
@@ -155,9 +176,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'No valid products or deals in order' }, { status: 400 });
     }
 
-    // 3. Delivery fee calculation
-    const finalDeliveryFee = orderType === 'DELIVERY' ? (typeof clientDeliveryFee === 'number' ? clientDeliveryFee : 150) : 0;
-    const totalAmount = Math.max(0, calculatedSubtotal - discountAmount + finalDeliveryFee);
+    // 3. Delivery fee & Currency Math Safeguards (Strict deterministic integer/rupee rounding)
+    const rawDeliveryFee = orderType === 'DELIVERY' ? (typeof clientDeliveryFee === 'number' ? clientDeliveryFee : 150) : 0;
+    const sanitizedSubtotal = Math.round(calculatedSubtotal);
+    const sanitizedDiscount = Math.round(typeof discountAmount === 'number' ? Math.max(0, discountAmount) : 0);
+    const sanitizedDeliveryFee = Math.round(rawDeliveryFee);
+    const sanitizedTotal = Math.max(0, Math.round(sanitizedSubtotal - sanitizedDiscount + sanitizedDeliveryFee));
 
     // 4. Generate collision-safe unique order number (e.g. TWK-84920)
     let orderNumber = '';
@@ -206,11 +230,11 @@ export async function POST(req: Request) {
         orderStatus: 'PENDING',
         paymentMethod: 'CASH_ON_DELIVERY',
         paymentStatus: 'PENDING',
-        subtotal: calculatedSubtotal,
-        discountAmount,
+        subtotal: sanitizedSubtotal,
+        discountAmount: sanitizedDiscount,
         couponCode: couponCode || null,
-        deliveryFee: finalDeliveryFee,
-        totalAmount,
+        deliveryFee: sanitizedDeliveryFee,
+        totalAmount: sanitizedTotal,
         orderItems: {
           create: validatedOrderItems.map((item) => ({
             menuItemId: item.productId || undefined,

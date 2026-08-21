@@ -18,11 +18,13 @@ function createPrismaAdapter() {
   const conn = getConnectionString();
   const host = conn.split('@')[1]?.split('/')[0] || 'Database Host';
 
-  console.log('--------------------------------------------------');
-  console.log('[DB RUNTIME DIAGNOSTIC]');
-  console.log('DATABASE_HOST:', host.replace(/:.*@/, ''));
-  console.log('DATABASE_RUNTIME:', process.env.NODE_ENV || 'development');
-  console.log('--------------------------------------------------');
+  if (process.env.NODE_ENV === 'development') {
+    console.log('--------------------------------------------------');
+    console.log('[DB RUNTIME DIAGNOSTIC]');
+    console.log('DATABASE_HOST:', host.replace(/:.*@/, ''));
+    console.log('DATABASE_RUNTIME:', process.env.NODE_ENV || 'development');
+    console.log('--------------------------------------------------');
+  }
 
   const pool = new Pool({ connectionString: conn });
   return new PrismaPg(pool);

@@ -90,14 +90,28 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 4. Customer API requests (menu, deals, delivery-areas, branches) -> Network-First (Live data always prioritized)
+// Cache size limit helper function to prevent unbounded dynamic cache growth
+function trimCache(cacheName, maxItems) {
+  caches.open(cacheName).then((cache) => {
+    cache.keys().then((keys) => {
+      if (keys.length > maxItems) {
+        cache.delete(keys[0]).then(() => trimCache(cacheName, maxItems));
+      }
+    });
+  });
+}
+
+// Customer API requests (menu, deals, delivery-areas, branches) -> Network-First (Live data always prioritized)
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(request)
         .then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200) {
             const responseClone = networkResponse.clone();
-            caches.open(DYNAMIC_CACHE).then((cache) => cache.put(request, responseClone));
+            caches.open(DYNAMIC_CACHE).then((cache) => {
+              cache.put(request, responseClone);
+              trimCache(DYNAMIC_CACHE, 50);
+            });
           }
           return networkResponse;
         })
@@ -115,7 +129,10 @@ self.addEventListener('fetch', (event) => {
         .then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200) {
             const responseClone = networkResponse.clone();
-            caches.open(DYNAMIC_CACHE).then((cache) => cache.put(request, responseClone));
+            caches.open(DYNAMIC_CACHE).then((cache) => {
+              cache.put(request, responseClone);
+              trimCache(DYNAMIC_CACHE, 50);
+            });
           }
           return networkResponse;
         })

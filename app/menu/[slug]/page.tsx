@@ -60,6 +60,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     alternates: {
       canonical: `/menu/${slug}`,
     },
+    openGraph: {
+      title: `${formattedName} | Live Charcoal BBQ`,
+      description: `Order authentic ${formattedName} online from Tawakal Bar B.Q Karachi. Live charcoal grilled Pakistani delicacies.`,
+      url: `${BASE_URL}/menu/${slug}`,
+      siteName: 'Tawakal BBQ',
+      images: [{ url: '/logo.png', alt: formattedName }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${formattedName} | Live Charcoal BBQ`,
+      description: `Order authentic ${formattedName} online from Tawakal Bar B.Q Karachi. Live charcoal grilled Pakistani delicacies.`,
+      images: ['/logo.png'],
+    },
   };
 }
 

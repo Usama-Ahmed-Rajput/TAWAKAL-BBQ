@@ -182,7 +182,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const toggleDrawer = () => setIsDrawerOpen((prev) => !prev);
 
   const totalItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const subtotal = Math.round(cart.reduce((sum, item) => sum + item.price * item.quantity, 0));
   const deliveryFee = subtotal > 0 ? DEFAULT_DELIVERY_FEE : 0;
   const totalPrice = subtotal + deliveryFee;
 

@@ -11,13 +11,16 @@ export default function AdminOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('ALL');
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [updating, setUpdating] = useState(false);
   const { toast } = useToast();
 
-  const fetchOrders = () => {
+  const fetchOrders = (targetPage = page) => {
     setLoading(true);
-    fetch(`/api/orders?status=${activeTab}&search=${encodeURIComponent(search)}`)
+    fetch(`/api/orders?status=${activeTab}&search=${encodeURIComponent(search)}&page=${targetPage}&limit=20`)
       .then((res) => {
         if (res.status === 401 || res.status === 403) {
           window.location.href = '/admin/login';
@@ -28,6 +31,11 @@ export default function AdminOrdersPage() {
       .then((data) => {
         if (!data) return;
         setOrders(data.orders || []);
+        if (data.pagination) {
+          setPage(data.pagination.page);
+          setTotalPages(data.pagination.totalPages);
+          setTotalCount(data.pagination.totalCount);
+        }
         setLoading(false);
       })
       .catch((err) => {
@@ -38,8 +46,14 @@ export default function AdminOrdersPage() {
   };
 
   useEffect(() => {
-    fetchOrders();
+    setPage(1);
+    fetchOrders(1);
   }, [activeTab]);
+
+  const handleSearchSubmit = () => {
+    setPage(1);
+    fetchOrders(1);
+  };
 
   const handleUpdateStatus = async (orderId: string, newStatus: string) => {
     setUpdating(true);
@@ -55,7 +69,7 @@ export default function AdminOrdersPage() {
       }
 
       toast.success(`Order status updated to ${newStatus.replace(/_/g, ' ')}`);
-      fetchOrders();
+      fetchOrders(page);
       if (selectedOrder && (selectedOrder.id === orderId || selectedOrder.orderNumber === orderId)) {
         setSelectedOrder({ ...selectedOrder, orderStatus: newStatus });
       }
@@ -124,7 +138,7 @@ export default function AdminOrdersPage() {
             placeholder="Search order # or phone..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && fetchOrders()}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearchSubmit()}
             className="w-full bg-[#18110e] border border-amber-900/40 rounded-xl py-2 pl-10 pr-4 text-xs font-semibold tracking-wider text-amber-100 placeholder:text-amber-500/50 focus:outline-none focus:border-[#C83B22] focus:ring-1 focus:ring-[#C83B22]"
           />
         </div>
@@ -141,82 +155,105 @@ export default function AdminOrdersPage() {
           No orders found under this status filter.
         </div>
       ) : (
-        <div className="bg-[#18110e] border border-amber-900/40 rounded-2xl overflow-hidden shadow-xl">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-amber-900/40 bg-[#120c09] text-amber-400 uppercase text-[10px] tracking-wider font-semibold">
-                  <th className="p-4">Order #</th>
-                  <th className="p-4">Customer</th>
-                  <th className="p-4">Type</th>
-                  <th className="p-4">Total Amount</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4">Date</th>
-                  <th className="p-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-amber-900/20">
-                {orders.map((order) => (
-                  <tr key={order.id} className="hover:bg-amber-950/20 transition-colors">
-                    <td className="p-4 font-mono font-bold text-amber-300">
-                      {order.orderNumber}
-                    </td>
-                    <td className="p-4">
-                      <div className="font-semibold text-amber-100">{order.customerName}</div>
-                      <div className="text-[11px] text-amber-400/60">{order.customerPhone}</div>
-                    </td>
-                    <td className="p-4">
-                      <span className="bg-amber-950 px-2 py-0.5 rounded text-[10px] uppercase font-bold text-amber-400 border border-amber-800/40">
-                        {order.orderType}
-                      </span>
-                    </td>
-                    <td className="p-4 font-bebas text-lg text-amber-400">
-                      Rs. {order.totalAmount}
-                    </td>
-                    <td className="p-4">
-                      <span
-                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${getStatusBadge(
-                          order.orderStatus
-                        )}`}
-                      >
-                        {order.orderStatus.replace(/_/g, ' ')}
-                      </span>
-                    </td>
-                    <td className="p-4 text-amber-200/60 text-[11px]">
-                      {new Date(order.createdAt).toLocaleString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </td>
-                    <td className="p-4 text-right">
-                      <div className="flex items-center justify-end space-x-2">
-                        <select
-                          disabled={updating}
-                          value={order.orderStatus}
-                          onChange={(e) => handleUpdateStatus(order.id, e.target.value)}
-                          className="bg-[#0d0907] border border-amber-900/50 rounded-lg text-[10px] p-1.5 text-amber-200 focus:outline-none"
-                        >
-                          {STATUSES.filter((s) => s !== 'ALL').map((s) => (
-                            <option key={s} value={s}>
-                              {s.replace(/_/g, ' ')}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          onClick={() => setSelectedOrder(order)}
-                          className="p-1.5 rounded-lg bg-amber-950/60 border border-amber-800/40 text-amber-300 hover:bg-amber-800/40"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
+        <div className="space-y-4">
+          <div className="bg-[#18110e] border border-amber-900/40 rounded-2xl overflow-hidden shadow-xl">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-amber-900/40 bg-[#120c09] text-amber-400 uppercase text-[10px] tracking-wider font-semibold">
+                    <th className="p-4">Order #</th>
+                    <th className="p-4">Customer</th>
+                    <th className="p-4">Type</th>
+                    <th className="p-4">Items</th>
+                    <th className="p-4">Total</th>
+                    <th className="p-4">Date</th>
+                    <th className="p-4">Status</th>
+                    <th className="p-4 text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-amber-900/20">
+                  {orders.map((order) => (
+                    <tr key={order.id} className="hover:bg-amber-950/20 transition-colors">
+                      <td className="p-4 font-mono font-bold text-amber-400">
+                        {order.orderNumber}
+                      </td>
+                      <td className="p-4">
+                        <div className="font-semibold text-amber-100">{order.customerName}</div>
+                        <div className="text-[10px] text-amber-300/60 font-mono">{order.customerPhone}</div>
+                      </td>
+                      <td className="p-4">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-950/60 text-amber-300 border border-amber-800/40">
+                          {order.orderType}
+                        </span>
+                      </td>
+                      <td className="p-4 max-w-xs truncate text-amber-200/80">
+                        {order.orderItems?.map((i: any) => `${i.name} (${i.quantity})`).join(', ')}
+                      </td>
+                      <td className="p-4 font-bold text-amber-300">
+                        Rs. {order.totalAmount}
+                      </td>
+                      <td className="p-4 text-amber-200/60 text-[10px]">
+                        {new Date(order.createdAt).toLocaleString()}
+                      </td>
+                      <td className="p-4">
+                        <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider ${getStatusBadge(order.orderStatus)}`}>
+                          {order.orderStatus.replace(/_/g, ' ')}
+                        </span>
+                      </td>
+                      <td className="p-4 text-right">
+                        <div className="flex items-center justify-end space-x-2">
+                          <select
+                            value={order.orderStatus}
+                            onChange={(e) => handleUpdateStatus(order.id, e.target.value)}
+                            disabled={updating}
+                            className="bg-[#120c09] border border-amber-900/40 rounded-lg px-2 py-1 text-[11px] font-semibold text-amber-200 focus:outline-none focus:border-amber-500"
+                          >
+                            {STATUSES.filter((s) => s !== 'ALL').map((s) => (
+                              <option key={s} value={s}>
+                                {s.replace(/_/g, ' ')}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            onClick={() => setSelectedOrder(order)}
+                            className="p-1.5 rounded-lg bg-amber-950/60 border border-amber-800/40 text-amber-300 hover:bg-amber-800/40"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between bg-[#18110e] p-4 rounded-xl border border-amber-900/40 text-xs">
+              <span className="text-amber-300/70">
+                Page <span className="font-bold text-amber-100">{page}</span> of{' '}
+                <span className="font-bold text-amber-100">{totalPages}</span> ({totalCount} total orders)
+              </span>
+              <div className="flex items-center space-x-2">
+                <button
+                  disabled={page <= 1 || loading}
+                  onClick={() => fetchOrders(page - 1)}
+                  className="px-3 py-1.5 rounded-lg bg-[#120c09] border border-amber-900/40 text-amber-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-amber-950/60 transition-colors font-semibold"
+                >
+                  Previous
+                </button>
+                <button
+                  disabled={page >= totalPages || loading}
+                  onClick={() => fetchOrders(page + 1)}
+                  className="px-3 py-1.5 rounded-lg bg-[#120c09] border border-amber-900/40 text-amber-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-amber-950/60 transition-colors font-semibold"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

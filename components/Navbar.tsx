@@ -143,6 +143,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOrderClick }) => {
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-2 text-[#F4EBDD] hover:text-[#C83B22] focus:outline-none min-h-[44px] min-w-[44px] flex items-center justify-center"
               aria-label="Toggle Navigation Menu"
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-nav-menu"
             >
               {mobileMenuOpen ? (
                 <X className="w-7 h-7 text-[#C83B22]" />
@@ -158,6 +160,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOrderClick }) => {
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div
+            id="mobile-nav-menu"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}

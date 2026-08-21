@@ -1,8 +1,30 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 export async function POST(request: Request) {
   try {
+    // 1. Fail-safe Rate Limiting (5 requests per minute per IP)
+    try {
+      const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || '127.0.0.1';
+      const rateLimit = checkRateLimit(`coupon_validate_${ip}`, 5, 60 * 1000);
+
+      if (!rateLimit.success) {
+        const retryAfterSeconds = Math.ceil(rateLimit.resetInMs / 1000);
+        return NextResponse.json(
+          { error: 'Too many coupon validation attempts. Please wait a minute before trying again.' },
+          {
+            status: 429,
+            headers: {
+              'Retry-After': String(retryAfterSeconds),
+            },
+          }
+        );
+      }
+    } catch (rlErr) {
+      console.warn('[RATE LIMITER WARNING]: Non-blocking rate limiter exception:', rlErr);
+    }
+
     const { code, subtotal } = await request.json();
 
     if (!code || subtotal === undefined) {
@@ -10,7 +32,7 @@ export async function POST(request: Request) {
     }
 
     const coupon = await db.coupon.findUnique({
-      where: { code: code.trim().toUpperCase() },
+      where: { code: String(code).trim().toUpperCase() },
     });
 
     if (!coupon || !coupon.isActive) {
@@ -39,6 +61,7 @@ export async function POST(request: Request) {
     }
 
     discountAmount = Math.min(discountAmount, subtotal);
+    discountAmount = Math.round(discountAmount);
 
     return NextResponse.json({
       valid: true,
