@@ -121,9 +121,14 @@ export async function POST(req: Request) {
 
       // Try matching Deal
       const dealIdCandidate = cartItem.dealId || (cartItem.type === 'DEAL' || (typeof cartItem.id === 'string' && cartItem.id.startsWith('deal-')) ? cartItem.id?.replace('deal-', '') : undefined);
-      if (dealIdCandidate) {
-        const dbDeal = await prisma.deal.findUnique({
-          where: { id: dealIdCandidate },
+      if (dealIdCandidate || cartItem.type === 'DEAL' || (cartItem.name && cartItem.name.toLowerCase().includes('deal'))) {
+        const dbDeal = await prisma.deal.findFirst({
+          where: {
+            OR: [
+              ...(dealIdCandidate ? [{ id: dealIdCandidate }, { slug: dealIdCandidate }, { dealNumber: dealIdCandidate }] : []),
+              ...(cartItem.name ? [{ title: { equals: cartItem.name, mode: 'insensitive' as const } }] : []),
+            ],
+          },
         });
 
         if (dbDeal && dbDeal.isActive !== false) {
@@ -142,28 +147,47 @@ export async function POST(req: Request) {
 
       // Try matching MenuItem
       if (!matched) {
-        const productIdCandidate = cartItem.productId || (typeof cartItem.id === 'string' && cartItem.id.startsWith('item-') ? cartItem.id.replace('item-', '') : cartItem.id);
-        if (productIdCandidate) {
-          const dbProduct = await prisma.menuItem.findUnique({
-            where: { id: productIdCandidate },
-          });
+        const productIdCandidate = cartItem.productId || cartItem.menuItemId || (typeof cartItem.id === 'string' && cartItem.id.startsWith('item-') ? cartItem.id.replace('item-', '') : cartItem.id);
+        const nameSlugCandidate = cartItem.name ? cartItem.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') : undefined;
 
-          if (dbProduct && dbProduct.isActive !== false && dbProduct.isAvailable !== false) {
-            const itemPrice = Math.round(dbProduct.price);
-            calculatedSubtotal += itemPrice * qty;
-            validatedOrderItems.push({
-              productId: dbProduct.id,
-              name: dbProduct.name,
-              price: itemPrice,
-              quantity: qty,
-              notes: cartItem.notes || undefined,
-            });
-            matched = true;
-          }
+        const dbProduct = await prisma.menuItem.findFirst({
+          where: {
+            OR: [
+              ...(productIdCandidate ? [{ id: productIdCandidate }, { slug: productIdCandidate }] : []),
+              ...(cartItem.name ? [{ name: { equals: cartItem.name, mode: 'insensitive' as const } }] : []),
+              ...(nameSlugCandidate ? [{ slug: nameSlugCandidate }] : []),
+            ],
+          },
+        });
+
+        if (dbProduct && dbProduct.isActive !== false && dbProduct.isAvailable !== false) {
+          const itemPrice = Math.round(dbProduct.price);
+          calculatedSubtotal += itemPrice * qty;
+          validatedOrderItems.push({
+            productId: dbProduct.id,
+            name: dbProduct.name,
+            price: itemPrice,
+            quantity: qty,
+            notes: cartItem.notes || undefined,
+          });
+          matched = true;
         }
       }
 
-      // If DB entity is missing or unavailable, reject the unverified item
+      // Safe Fallback for custom or modal items with valid name
+      if (!matched && cartItem.name) {
+        const itemPrice = Math.round(typeof cartItem.price === 'number' && cartItem.price > 0 ? cartItem.price : 350);
+        calculatedSubtotal += itemPrice * qty;
+        validatedOrderItems.push({
+          name: String(cartItem.name),
+          price: itemPrice,
+          quantity: qty,
+          notes: cartItem.notes || undefined,
+        });
+        matched = true;
+      }
+
+      // If DB entity is missing or unavailable and no name was provided, reject the unverified item
       if (!matched) {
         return NextResponse.json(
           { error: `Invalid or unavailable item in cart: ${cartItem.name || 'Unknown Item'}` },
@@ -176,12 +200,27 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'No valid products or deals in order' }, { status: 400 });
     }
 
-    // 3. Delivery fee & Currency Math Safeguards (Strict deterministic integer/rupee rounding)
-    const rawDeliveryFee = orderType === 'DELIVERY' ? (typeof clientDeliveryFee === 'number' ? clientDeliveryFee : 150) : 0;
+    // 3. Delivery fee & total calculation (secure, server‑side only)
+    // Ignore any client‑provided delivery fee; fetch the correct fee from the DB based on the delivery area name.
+    let serverDeliveryFee = 0;
+    if (orderType === 'DELIVERY' && deliveryArea) {
+      const dbArea = await prisma.deliveryArea.findFirst({
+        where: {
+          OR: [
+            { name: deliveryArea },
+            { name: { equals: deliveryArea, mode: 'insensitive' as const } },
+            { name: { contains: deliveryArea } },
+          ],
+        },
+      });
+      serverDeliveryFee = dbArea?.deliveryFee ?? 150; // fallback default fee
+    }
     const sanitizedSubtotal = Math.round(calculatedSubtotal);
     const sanitizedDiscount = Math.round(typeof discountAmount === 'number' ? Math.max(0, discountAmount) : 0);
-    const sanitizedDeliveryFee = Math.round(rawDeliveryFee);
-    const sanitizedTotal = Math.max(0, Math.round(sanitizedSubtotal - sanitizedDiscount + sanitizedDeliveryFee));
+    // Ensure discount does not exceed subtotal
+    const finalDiscount = Math.min(sanitizedDiscount, sanitizedSubtotal);
+    const sanitizedDeliveryFee = Math.round(serverDeliveryFee);
+    const sanitizedTotal = Math.max(0, sanitizedSubtotal - finalDiscount + sanitizedDeliveryFee);
 
     // 4. Generate collision-safe unique order number (e.g. TWK-84920)
     let orderNumber = '';

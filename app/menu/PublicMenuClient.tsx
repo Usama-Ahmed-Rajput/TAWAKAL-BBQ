@@ -5,6 +5,7 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { useCart } from '@/context/CartContext';
 import { Search, Flame, Plus, Minus, Check } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 
 interface MenuItem {
@@ -174,10 +175,13 @@ export function PublicMenuClient() {
                 >
                   <div>
                     <Link href={`/menu/${item.slug}`} className="relative block aspect-[4/3] overflow-hidden bg-[#11100E]">
-                      <img
+                      <Image
                         src={item.image}
                         alt={`${item.name} - Tawakal Bar B.Q Karachi`}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        width={500}
+                        height={300}
+                        onError={(e) => { (e.target as any).src = '/placeholder.png'; }}
                       />
                       {item.urduName && (
                         <div className="absolute top-3 right-3 bg-[#11100E]/80 backdrop-blur-md px-3 py-1 rounded-full text-xs font-urdu text-[#C69A45]">

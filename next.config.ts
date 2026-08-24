@@ -17,6 +17,10 @@ const cspHeader = `
 `.replace(/\s{2,}/g, ' ').trim();
 
 const nextConfig: NextConfig = {
+  images: {
+    domains: ['images.unsplash.com'],
+    // Add any other external image domains here if needed
+  },
   async headers() {
     return [
       {

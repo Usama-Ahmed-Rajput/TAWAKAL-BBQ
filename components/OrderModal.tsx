@@ -58,8 +58,10 @@ export const OrderModal: React.FC<OrderModalProps> = ({
           couponCode: couponCode || undefined,
           items: [
             {
+              productId: initialItemId || undefined,
               menuItemId: initialItemId || undefined,
               name: initialItem || 'Tawakal BBQ Special',
+              price: initialPrice || 350,
               quantity,
             },
           ],

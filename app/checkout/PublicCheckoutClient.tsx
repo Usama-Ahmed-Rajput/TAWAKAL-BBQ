@@ -50,6 +50,7 @@ export function PublicCheckoutClient() {
   const [couponMessage, setCouponMessage] = useState('');
 
   const [loading, setLoading] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   const [error, setError] = useState('');
 
   // 1. Load active branches
@@ -111,6 +112,8 @@ export function PublicCheckoutClient() {
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading || isNavigating) return;
+
     if (typeof window !== 'undefined' && !navigator.onLine) {
       setError('You are currently offline. Please reconnect to the internet to place your order.');
       return;
@@ -118,6 +121,11 @@ export function PublicCheckoutClient() {
 
     if (!customerName || !customerPhone) {
       setError('Please fill in your name and phone number.');
+      return;
+    }
+
+    if (!selectedBranchId) {
+      setError('Please select a restaurant branch before placing the order.');
       return;
     }
 
@@ -142,6 +150,9 @@ export function PublicCheckoutClient() {
     setLoading(true);
     setError('');
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
     try {
       const res = await fetch('/api/orders', {
         method: 'POST',
@@ -164,56 +175,78 @@ export function PublicCheckoutClient() {
           discountAmount,
           deliveryFee: currentDeliveryFee,
         }),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
-      const data = await res.json();
+      let data: any = null;
+      try {
+        data = await res.json();
+      } catch (parseErr) {
+        throw new Error('Server returned an invalid response. Please try again.');
+      }
+
       if (!res.ok) {
-        throw new Error(data.details ? `${data.error || 'Failed to place order'}: ${data.details}` : (data.error || 'Failed to place order.'));
+        throw new Error(
+          data?.details
+            ? `${data?.error || 'Failed to place order'}: ${data.details}`
+            : data?.error || 'Failed to place order.'
+        );
+      }
+
+      if (!data || !data.orderNumber) {
+        throw new Error('Order creation failed: missing order reference number.');
       }
 
       const orderPayload = data.order
         ? {
-          ...data.order,
-          area: currentArea ? currentArea.name.replace(/\s*\([^)]*\)/g, '').trim() : 'Akhtar Colony',
-          sector: selectedSector || 'Sector A',
-          houseFlatNo: houseFlatNo || undefined,
-          landmark: landmark || undefined,
-        }
+            ...data.order,
+            area: currentArea ? currentArea.name.replace(/\s*\([^)]*\)/g, '').trim() : 'Akhtar Colony',
+            sector: selectedSector || 'Sector A',
+            houseFlatNo: houseFlatNo || undefined,
+            landmark: landmark || undefined,
+          }
         : {
-          orderNumber: data.orderNumber,
-          customerName,
-          customerPhone,
-          orderType,
-          deliveryAddress: fullAddress,
-          area: currentArea ? currentArea.name.replace(/\s*\([^)]*\)/g, '').trim() : 'Akhtar Colony',
-          sector: selectedSector || 'Sector A',
-          houseFlatNo: houseFlatNo || undefined,
-          landmark: landmark || undefined,
-          subtotal,
-          deliveryFee: currentDeliveryFee,
-          totalAmount: grandTotal,
-          paymentMethod: 'CASH_ON_DELIVERY',
-          orderItems: cart.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price })),
-          createdAt: new Date().toISOString(),
-        };
+            orderNumber: data.orderNumber,
+            customerName,
+            customerPhone,
+            orderType,
+            deliveryAddress: fullAddress,
+            area: currentArea ? currentArea.name.replace(/\s*\([^)]*\)/g, '').trim() : 'Akhtar Colony',
+            sector: selectedSector || 'Sector A',
+            houseFlatNo: houseFlatNo || undefined,
+            landmark: landmark || undefined,
+            subtotal,
+            deliveryFee: currentDeliveryFee,
+            totalAmount: grandTotal,
+            paymentMethod: 'CASH_ON_DELIVERY',
+            orderItems: cart.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price })),
+            createdAt: new Date().toISOString(),
+          };
 
-      clearCart();
-
+      // Completely isolate WhatsApp launch so failure/popup blocking never breaks navigation
       try {
         launchCustomerWhatsApp(orderPayload);
       } catch (waErr) {
         console.error('WhatsApp launch error:', waErr);
       }
 
-      router.push(`/order/${data.orderNumber}?autoWa=1`);
+      setIsNavigating(true);
+      clearCart();
+      await router.push(`/order/${data.orderNumber}?autoWa=1`);
     } catch (err: any) {
-      setError(err.message || 'Something went wrong. Please try again.');
-    } finally {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        setError('Order request timed out. Please try again.');
+      } else {
+        setError(err.message || 'Something went wrong. Please try again.');
+      }
+      setIsNavigating(false);
       setLoading(false);
     }
   };
 
-  if (cart.length === 0) {
+  if (cart.length === 0 && !isNavigating) {
     return (
       <div className="relative min-h-screen bg-[#070707] text-[#F5F1EA]">
         <Navbar />
@@ -255,7 +288,7 @@ export function PublicCheckoutClient() {
           </div>
         )}
 
-        <form onSubmit={handleSubmitOrder} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <form onSubmit={handleSubmitOrder} className="grid grid-cols-1 lg:grid-cols-3 gap-8" noValidate>
           {/* Form Section */}
           <div className="lg:col-span-2 space-y-6">
             {/* Section 1: Select Branch */}
