@@ -75,7 +75,7 @@ export const SpiceCustomizer: React.FC = () => {
         />
 
         {/* Heat Selector Tabs */}
-        <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4 max-w-2xl mx-auto">
+        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 max-w-2xl mx-auto">
           {(['MILD', 'MEDIUM', 'FIRE HOT'] as HeatLevel[]).map((level) => {
             const isActive = selectedHeat === level;
             const item = heatOptions[level];
@@ -114,7 +114,7 @@ export const SpiceCustomizer: React.FC = () => {
         </div>
 
         {/* Heat Details Card */}
-        <div className="mt-10 bg-[#1A1815] border border-[#F4EBDD]/15 p-8 sm:p-12 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] relative">
+        <div className="mt-6 bg-[#1A1815] border border-[#F4EBDD]/15 p-8 sm:p-12 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] relative">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border-b border-[#11100E] pb-8">
             <div>
               <div className="flex items-center gap-3 mb-2">

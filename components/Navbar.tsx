@@ -64,7 +64,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOrderClick }) => {
               <span className="font-bebas text-2xl sm:text-3xl tracking-widest text-[#F4EBDD] group-hover:text-[#D96A2B] transition-colors leading-none">
                 TAWAKAL <span className="text-[#C83B22]">BBQ</span>
               </span>
-              <span className="font-sans text-[9px] uppercase tracking-[0.25em] text-[#B8B0A5] font-medium pt-0.5">
+              <span className="font-sans text-xs uppercase tracking-[0.25em] text-[#B8B0A5] font-medium pt-0.5">
                 Authentic Fire Grilled
               </span>
             </div>

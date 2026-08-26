@@ -8,7 +8,7 @@ export const Footer: React.FC = () => {
   return (
     <footer className="bg-[#11100E] text-[#B8B0A5] pt-20 pb-10 border-t border-[#F4EBDD]/10 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-16 border-b border-[#F4EBDD]/10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12 pb-16 border-b border-[#F4EBDD]/10">
           {/* Brand Column */}
           <div className="lg:col-span-2 space-y-4">
             <Link href="/" className="inline-flex items-center gap-3">
@@ -33,9 +33,9 @@ export const Footer: React.FC = () => {
 
           {/* Navigation Links */}
           <div className="space-y-4">
-            <h4 className="font-sans text-xs font-bold uppercase tracking-wider text-[#F4EBDD]">
+            <h3 className="font-sans text-xs font-bold uppercase tracking-wider text-[#F4EBDD]">
               NAVIGATION
-            </h4>
+            </h3>
             <ul className="space-y-2.5 font-sans text-xs tracking-wider">
               <li>
                 <Link href="/" className="hover:text-[#C83B22] transition-colors">
@@ -76,10 +76,10 @@ export const Footer: React.FC = () => {
           </div>
 
           {/* Address & Contact Details */}
-          <div className="space-y-4 lg:col-span-2">
-            <h4 className="font-sans text-xs font-bold uppercase tracking-wider text-[#F4EBDD]">
+          <div className="space-y-4">
+            <h3 className="font-sans text-xs font-bold uppercase tracking-wider text-[#F4EBDD]">
               RESTAURANT ADDRESS & PHONE
-            </h4>
+            </h3>
             <div className="space-y-3 font-sans text-xs text-[#B8B0A5]">
               <div className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 text-[#C69A45] shrink-0 mt-0.5" />

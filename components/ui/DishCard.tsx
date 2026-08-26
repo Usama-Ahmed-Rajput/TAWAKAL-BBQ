@@ -100,7 +100,7 @@ export const DishCard: React.FC<DishCardProps> = ({ dish, onOrder, cardHrefOverr
                 </span>
               )}
             </div>
-            <p className="font-sans text-[11px] uppercase tracking-wider text-[var(--color-primary)] font-bold mt-1">
+            <p className="font-sans text-xs uppercase tracking-wider text-[var(--color-primary)] font-bold mt-1">
               {dish.tagline}
             </p>
           </div>

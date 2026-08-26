@@ -62,7 +62,7 @@ export const SignaturePlatter: React.FC = () => {
           whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="flex flex-col items-start"
+          className="flex flex-col items-start text-left"
         >
           <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-[#1A1815] border border-[#C69A45]/30 text-[#C69A45] font-sans text-xs font-bold uppercase tracking-[0.2em] mb-4 rounded">
             <Award className="w-3.5 h-3.5 text-[#C69A45]" />

@@ -134,7 +134,7 @@ export const Hero: React.FC<HeroProps> = ({ onOrderClick }) => {
         </motion.div>
 
         {/* Main Heading Group (TAWAKAL BBQ + WHERE FIRE MEETS FLAVOR) */}
-        <div className="flex flex-col items-center gap-1 max-w-4xl">
+        <div className="flex flex-col items-center gap-3 sm:gap-4 max-w-4xl">
           <motion.h2
             initial={{ opacity: 0, y: 25 }}
             animate={{ opacity: 1, y: 0 }}

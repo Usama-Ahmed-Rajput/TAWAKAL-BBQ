@@ -82,9 +82,9 @@ export const Menu: React.FC<MenuProps> = ({ onOrderDish }) => {
         />
 
         {/* Category Segmented Tabs & Search Bar */}
-        <div className="mt-12 flex flex-col md:flex-row items-center justify-between gap-6 pb-6 border-b border-[#F4EBDD]/10">
+        <div className="mt-12 flex flex-col md:flex-row items-center justify-start gap-4 sm:gap-6 pb-6 border-b border-[#F4EBDD]/10">
           {/* Category Tabs */}
-          <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 scrollbar-none">
+          <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 scrollbar-none shrink-0">
             {categories.map((cat) => {
               const isActive = activeCategory === cat.id;
               return (
@@ -104,7 +104,7 @@ export const Menu: React.FC<MenuProps> = ({ onOrderDish }) => {
           </div>
 
           {/* Search Bar Input */}
-          <div className="relative w-full md:w-72">
+          <div className="relative w-full md:w-72 md:ml-auto">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#B8B0A5]" />
             <input
               type="text"

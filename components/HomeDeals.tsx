@@ -121,7 +121,7 @@ export const HomeDeals: React.FC = () => {
 
                         {/* Included Items List */}
                         <div className="mt-4 p-3.5 rounded-xl bg-[#11100E] border border-[#24201C]">
-                          <span className="font-sans text-[10px] uppercase tracking-wider text-[#C69A45] font-bold block mb-1.5">
+                          <span className="font-sans text-xs uppercase tracking-wider text-[#C69A45] font-bold block mb-1.5">
                             INCLUDED IN THIS DEAL:
                           </span>
                           <p className="font-sans text-xs text-[#F4EBDD] leading-relaxed line-clamp-2">
@@ -132,7 +132,7 @@ export const HomeDeals: React.FC = () => {
                         {/* Compulsory Raita Notice */}
                         <div className="mt-3 flex items-center gap-1.5 text-xs text-[#C69A45] bg-[#C69A45]/10 px-3 py-1.5 rounded-lg border border-[#C69A45]/20">
                           <ShieldCheck className="w-4 h-4 text-[#C69A45] shrink-0" />
-                          <span className="font-medium text-[11px]">1 Raita is compulsory with every deal</span>
+                          <span className="font-medium text-xs">1 Raita is compulsory with every deal</span>
                         </div>
                       </div>
                     </div>
