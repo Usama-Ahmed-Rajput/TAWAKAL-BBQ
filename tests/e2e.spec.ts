@@ -10,23 +10,23 @@ test.describe('Tawakal Bar B.Q core flows', () => {
         failed.push(`${resp.url()} -> ${resp.status()}`);
       }
     });
-    await page.goto('http://localhost:3002');
+    await page.goto('http://localhost:3000');
     await page.waitForLoadState('networkidle');
-    await page.goto('http://localhost:3002/menu');
+    await page.goto('http://localhost:3000/menu');
     await page.waitForLoadState('networkidle');
     expect(failed).toEqual([]);
   });
 
   test('Place order flow works end-to-end', async ({ page }) => {
     // Navigate to menu
-    await page.goto('http://localhost:3002/menu');
+    await page.goto('http://localhost:3000/menu');
     await page.waitForLoadState('networkidle');
     // Click first Add to Cart button
     const addBtn = await page.$('text=Add to Cart');
     if (!addBtn) test.fail(true, 'Add to Cart button not found');
     await addBtn?.click();
     // Go to cart
-    await page.goto('http://localhost:3002/cart');
+    await page.goto('http://localhost:3000/cart');
     await page.waitForLoadState('networkidle');
     // Proceed to checkout
     const checkoutBtn = await page.$('text=Proceed to Checkout');
@@ -50,7 +50,7 @@ test.describe('Tawakal Bar B.Q core flows', () => {
     expect(data).toHaveProperty('orderNumber');
     await page.waitForURL(`**/order/${data.orderNumber}**`);
     // Verify cart cleared
-    await page.goto('http://localhost:3002/cart');
+    await page.goto('http://localhost:3000/cart');
     const emptyMsg = await page.textContent('text=Your cart is empty');
     expect(emptyMsg).toContain('Your cart is empty');
   });
